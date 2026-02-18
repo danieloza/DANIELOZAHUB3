@@ -1,0 +1,38 @@
+from fastapi import APIRouter, Depends, Response
+from sqlalchemy.orm import Session
+from datetime import datetime, date
+from .db import get_db
+from .schemas import VisitCreate, VisitOut, DaySummary, MonthReport
+from .services import create_visit, day_summary, month_report
+from .csv_export import export_visits_csv
+from .pdf_export import build_month_report_pdf
+
+router = APIRouter(prefix="/api")
+
+@router.post("/visits", response_model=VisitOut)
+def add_visit(payload: VisitCreate, db: Session = Depends(get_db)):
+    v = create_visit(db=db, dt=payload.dt, client_name=payload.client_name, employee_name=payload.employee_name, service_name=payload.service_name, price=payload.price)
+    return VisitOut(id=v.id, dt=v.dt, client=v.client.name, employee=v.employee.name, service=v.service.name, price=float(v.price))
+
+@router.get("/summary/day", response_model=DaySummary)
+def get_day_summary(day: date, db: Session = Depends(get_db)):
+    total, count = day_summary(db, day)
+    return DaySummary(date=day.isoformat(), total_revenue=total, visits_count=count)
+
+@router.get("/report/month", response_model=MonthReport)
+def get_month_report(year: int, month: int, db: Session = Depends(get_db)):
+    total, count, by_emp = month_report(db, year, month)
+    month_label = f"{year:04d}-{month:02d}"
+    return MonthReport(month=month_label, total_revenue=total, visits_count=count, by_employee=[{"employee": n, "commission_pct": p, "revenue": r, "commission_amount": c} for (n,p,r,c) in by_emp])
+
+@router.get("/export/visits.csv")
+def get_visits_csv(start: datetime, end: datetime, db: Session = Depends(get_db)):
+    csv_text = export_visits_csv(db, start, end)
+    return Response(content=csv_text, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=visits.csv"})
+
+@router.get("/export/report.pdf")
+def get_report_pdf(year: int, month: int, db: Session = Depends(get_db)):
+    total, count, by_emp = month_report(db, year, month)
+    month_label = f"{year:04d}-{month:02d}"
+    pdf_bytes = build_month_report_pdf(month_label, total, count, by_emp)
+    return Response(content=pdf_bytes, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=report_{month_label}.pdf"})
