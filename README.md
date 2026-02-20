@@ -1,5 +1,11 @@
-﻿# SalonOS
+# SalonOS
 
+[![CI](https://github.com/danieloza/DANIELOZAHUB3/actions/workflows/ci.yml/badge.svg)](https://github.com/danieloza/DANIELOZAHUB3/actions/workflows/ci.yml)
+
+## Hiring Snapshot
+- Built a multi-tenant booking API with status workflows and conversion from reservation to visit.
+- Implemented export/report endpoints plus bot-assisted operations for day-to-day scheduling.
+- Added automated tests to keep API behavior stable while iterating quickly.
 ## TL;DR (60s)
 Uruchom API SalonOS:
 ```powershell
@@ -28,7 +34,7 @@ SalonOS to `core` system rezerwacji i wizyt (API + bot Telegram).
 
 ## Architecture Role
 - SalonOS core API: `http://127.0.0.1:8000`
-- Danex Business API działa jako gateway/admin/public nad SalonOS
+- Danex Business API dzia�a jako gateway/admin/public nad SalonOS
 
 ## Quick Start
 ```powershell
@@ -120,3 +126,6 @@ Swagger i health:
 - `README.md` (ten plik)
 - `tests/` (przyklady integracyjne API)
 - Portfolio one-pager (in Danex repo): `..\danex-business-api\PORTFOLIO.md`
+
+
+
