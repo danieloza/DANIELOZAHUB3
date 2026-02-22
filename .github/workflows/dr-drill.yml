@@ -1,0 +1,71 @@
+name: DR Drill
+
+on:
+  schedule:
+    - cron: "0 4 * * 0"
+  workflow_dispatch:
+
+jobs:
+  drill:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Create venv and install dependencies
+        shell: powershell
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install --upgrade pip
+          .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+      - name: Seed drill database
+        shell: powershell
+        run: |
+          $dbPath = Join-Path $env:GITHUB_WORKSPACE "drill_salonos.db"
+          $env:DATABASE_URL = "sqlite:///$dbPath"
+          @'
+          from app.db import Base, engine, SessionLocal
+          from app.services import get_or_create_tenant
+
+          Base.metadata.create_all(bind=engine)
+          with SessionLocal() as db:
+              get_or_create_tenant(db=db, slug="drill", name="Drill")
+          '@ | .\.venv\Scripts\python.exe -
+
+      - name: Run backup restore drill
+        shell: powershell
+        run: |
+          $dbPath = Join-Path $env:GITHUB_WORKSPACE "drill_salonos.db"
+          $backupDir = Join-Path $env:GITHUB_WORKSPACE "backups\\drill-ci"
+          powershell -ExecutionPolicy Bypass -File .\scripts\backup_restore_drill.ps1 -DbPath $dbPath -BackupDir $backupDir
+          $report = Get-Content .\logs\backup_restore_drill_last.json | ConvertFrom-Json
+          if ($report.status -ne "ok") { throw "DR drill failed: status is not ok" }
+
+      - name: Verify encrypted PITR backup readability
+        shell: powershell
+        env:
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          $dbPath = Join-Path $env:GITHUB_WORKSPACE "drill_salonos.db"
+          $env:DATABASE_URL = "sqlite:///$dbPath"
+          if (-not $env:BACKUP_ENCRYPTION_KEY) {
+            $env:BACKUP_ENCRYPTION_KEY = (& .\.venv\Scripts\python.exe -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode('utf-8'))")
+          }
+          .\.venv\Scripts\python.exe .\scripts\pitr_backup.py --out-dir .\backups\pitr-ci
+          .\.venv\Scripts\python.exe .\scripts\verify_backup.py --backups-dir .\backups\pitr-ci
+
+      - name: Upload DR artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dr-drill-artifacts
+          path: |
+            logs/backup_restore_drill_last.json
+            backups/drill-ci
+            backups/pitr-ci
