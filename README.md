@@ -2,39 +2,38 @@
 
 [![CI](https://github.com/danieloza/DANIELOZAHUB3/actions/workflows/ci.yml/badge.svg)](https://github.com/danieloza/DANIELOZAHUB3/actions/workflows/ci.yml)
 
-## Hiring Snapshot
-- Built a multi-tenant booking API with status workflows and conversion from reservation to visit.
-- Implemented export/report endpoints plus bot-assisted operations for day-to-day scheduling.
-- Added automated tests to keep API behavior stable while iterating quickly.
+> PL: Repo jest prowadzone po angielsku (dla szerszej widocznosci), ale produkt i UX sa przygotowane pod polski rynek beauty.
+
 ## TL;DR (60s)
-Uruchom API SalonOS:
+Start SalonOS API:
 ```powershell
 .\start_api.ps1
 ```
 
-Uruchom quality gate:
+Run quality gate:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q tests
 ```
 
-Lokalny duet demo:
+Local demo pair:
 - SalonOS: `http://127.0.0.1:8000`
 - Danex: `http://127.0.0.1:8001`
 
 ## What It Is
-SalonOS to `core` system rezerwacji i wizyt (API + bot Telegram).
+SalonOS is the core booking and visit management system (FastAPI + Telegram bot) with multi-tenant support.
 
 ## Scope
-- Wizyty: add/list/move/delete
-- Public reservations: `POST /public/{tenant_slug}/reservations`
-- Status flow rezerwacji + konwersja do wizyty
-- Raporty dzienne/miesieczne
-- Eksport CSV/PDF
-- Multi-tenant przez `X-Tenant-Slug`
+- visits: add/list/move/delete
+- public reservations: `POST /public/{tenant_slug}/reservations`
+- reservation status flow + reservation-to-visit conversion
+- DB-level integrity: one reservation can create at most one visit
+- daily/monthly reports
+- CSV/PDF export
+- multi-tenant routing via `X-Tenant-Slug`
 
 ## Architecture Role
 - SalonOS core API: `http://127.0.0.1:8000`
-- Danex Business API dzia³a jako gateway/admin/public nad SalonOS
+- Danex Business API is the gateway/admin/public layer over SalonOS
 
 ## Quick Start
 ```powershell
@@ -45,7 +44,8 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
-Uzupelnij `TELEGRAM_BOT_TOKEN` w `.env`.
+Set `TELEGRAM_BOT_TOKEN` in `.env`.
+Optional: set `ADMIN_API_KEY` to protect operational endpoints (`/api/ops/*`, `/api/integrity/*`).
 
 ## Run Modes
 API:
@@ -63,38 +63,61 @@ API + Bot:
 .\start_all.ps1
 ```
 
-## Demo Flow (No VPS)
-Lokalny duet:
-- SalonOS: `http://127.0.0.1:8000`
-- Danex: `http://127.0.0.1:8001`
-
-Wspolny start/stop jest obslugiwany z repo Danex przez:
+## Local Demo Flow (No VPS)
+Shared start/stop scripts for SalonOS + Danex are in Danex repo:
 - `scripts/start_demo_stack.ps1`
 - `scripts/stop_demo_stack.ps1`
 
+Run automated local demo:
+```powershell
+.\demo_flow.ps1
+```
+
+Output report: `logs\demo_flow_last.json`
+
+`demo_flow.ps1` validates end-to-end:
+- availability (working day + employee block)
+- buffers (service + employee)
+- slot recommendations
+- visit status transitions
+- CRM endpoints (`clients/search`, `clients/{id}`, notes)
+- reservations flow (create -> status -> convert)
+- pulse + assistant endpoints
+- conversion integrity checks
+
 ## API Surface
-Wizyty:
+Visits:
 - `POST /api/visits`
 - `GET /api/visits?day=YYYY-MM-DD&employee_name=...`
 - `PATCH /api/visits/{visit_id}`
 - `DELETE /api/visits/{visit_id}`
 
-Rezerwacje:
+Reservations:
 - `POST /public/{tenant_slug}/reservations`
 - `GET /api/reservations`
 - `PATCH /api/reservations/{reservation_id}/status`
 - `POST /api/reservations/{reservation_id}/convert`
 - `GET /api/reservations/{reservation_id}/history`
 
-Raporty i eksport:
+Integrity:
+- `GET /api/integrity/conversions?limit=100`
+
+Ops (admin API key when configured):
+- `GET /api/ops/metrics?window_minutes=15`
+- `GET /api/ops/alerts?window_minutes=15`
+- `GET /api/ops/jobs/health?stale_running_minutes=15`
+
+Reports and export:
 - `GET /api/summary/day?day=YYYY-MM-DD`
 - `GET /api/report/month?year=2026&month=2`
 - `GET /api/export/visits.csv?start=...&end=...`
 - `GET /api/export/report.pdf?year=2026&month=2`
 
-Swagger i health:
+Swagger and health:
 - `http://127.0.0.1:8000/docs`
-- `GET http://127.0.0.1:8000/ping`
+- `GET /ping`
+- `GET /health`
+- `GET /health/ready`
 
 ## Quality Gates
 ```powershell
@@ -105,27 +128,73 @@ Swagger i health:
 - `start_api.ps1`
 - `start_bot.ps1`
 - `start_all.ps1`
+- `demo_flow.ps1`
+- `scripts/backup_db.ps1`
+- `scripts/restore_db.ps1`
+- `scripts/backup_restore_drill.ps1`
+- `scripts/register_backup_task.ps1`
+- `scripts/alembic_stamp_baseline.ps1`
+- `scripts/alembic_upgrade.ps1`
 - `start_salonos.bat`
 - `start_danex_all.bat`
 
+## Backups and Migrations
+Backup:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\backup_db.ps1 -RetentionDays 14
+```
+
+Restore:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\restore_db.ps1 -BackupFile .\backups\salonos_YYYYMMDD_HHMMSS.db -CreatePreRestoreSnapshot
+```
+
+Restore drill:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\backup_restore_drill.ps1
+```
+
+Daily backup task registration:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\register_backup_task.ps1 -TaskName SalonOS-Backup-Daily -At 02:30
+```
+
+Alembic baseline + upgrade:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\alembic_stamp_baseline.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\alembic_upgrade.ps1 -Revision head
+```
+
 ## Security and Ops Notes
-- Tenant routing przez `X-Tenant-Slug` i `DEFAULT_TENANT_*`.
-- Public reservation endpoint jest konsumowany przez Danex gateway.
-- Warto regularnie robic backup `salonos.db` (wspierane przez skrypty Danex).
+- tenant routing via `X-Tenant-Slug` and `DEFAULT_TENANT_*`
+- reservation conversion is protected against double execution (idempotency + unique constraint)
+- public reservation anti-abuse rate limiting (IP + phone)
+- auth anti-bruteforce limiter (tenant + email + IP)
+- request correlation with `X-Request-ID` + JSON logs + ops metrics/alerts
+- security headers enabled (`X-Content-Type-Options`, `X-Frame-Options`, `CSP`, `Referrer-Policy`)
+- optional calendar webhook HMAC validation
 
 ## Project Structure
-- `app/main.py` - entrypoint FastAPI
-- `app/api.py` - routing API/public
-- `app/services.py` - logika biznesowa
-- `app/models.py` - modele SQLAlchemy
-- `bot/router_bot.py` - routing bota
-- `bot/visit_wizard.py` - flow dodawania wizyt
-- `bot/day_view.py` - widok dnia i akcje
+- `app/main.py` - FastAPI entrypoint
+- `app/api.py` - API/public routes
+- `app/services.py` - business logic
+- `app/models.py` - SQLAlchemy models
+- `bot/router_bot.py` - Telegram bot routing
+- `bot/visit_wizard.py` - guided visit flow
+- `bot/day_view.py` - day summary view
 
-## Documentation
-- `README.md` (ten plik)
-- `tests/` (przyklady integracyjne API)
-- Portfolio one-pager (in Danex repo): `..\danex-business-api\PORTFOLIO.md`
+## Enterprise Delivery Highlights
+- calendar sync (Google/Outlook) + webhooks + outbox events
+- background jobs with retries + dead-letter queue
+- tenant policy engine (status transitions, slot buffer multiplier, SLA)
+- RBAC (`owner/manager/reception`) + actor enforcement for critical ops
+- full critical-action audit trail
+- OpenAPI freeze + contract testing in CI
+- SLO definitions + evaluation + alert routes
+- GDPR operations: anonymization/delete + retention cleanup
+- performance profiles (k6)
+- DR runbook + release automation
 
-
-
+## Polish Short Note
+Main documentation is in English for broader reach.
+Lokalny workflow, skrypty i komendy pozostaja zgodne z obecnym wdrozeniem.
