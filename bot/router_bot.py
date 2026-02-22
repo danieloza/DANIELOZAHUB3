@@ -28,7 +28,11 @@ TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 
 async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = "Danex – system zarządzania salonem.\n\nWybierz akcję:"
+    text = (
+        "SalonOS Command Center\n"
+        "Steruj wizytami, slotami i CRM z jednego miejsca.\n\n"
+        "Wybierz akcję:"
+    )
     if update.callback_query:
         await update.callback_query.message.reply_text(text, reply_markup=main_menu())
     else:
@@ -55,6 +59,10 @@ async def on_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pass
 
     data = q.data or ""
+    if data == "WOW:START":
+        data = "TODAY"
+    elif data == "WOW:ADD":
+        data = "ADD_VISIT"
 
     # 0) Moduły (D:, V:, AV:, itp.)
     # Jeśli któryś moduł obsłuży callback -> kończymy.
@@ -99,7 +107,7 @@ async def on_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if data.startswith("D:EMP:"):
             _, _, day_iso, emp = data.split(":", 3)
             text = render_day_view(day_iso, emp)
-            await q.message.reply_text(text, reply_markup=kb_day_actions(day_iso, emp), parse_mode="Markdown")
+            await q.message.reply_text(text, reply_markup=kb_day_actions(day_iso, emp))
             return
 
         if data.startswith("D:ADD:"):
