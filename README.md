@@ -33,6 +33,17 @@ SalonOS is the core booking and visit management system (FastAPI + Telegram bot)
 - SalonOS core API: `http://127.0.0.1:8000`
 - Danex Business API is the gateway/admin/public layer over SalonOS
 
+## Run In 2 Minutes (API)
+```bash
+git clone https://github.com/danieloza/DANIELOZAHUB3.git
+cd DANIELOZAHUB3
+python -m pip install -r requirements.txt && python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Open:
+- `http://127.0.0.1:8000/docs`
+- `http://127.0.0.1:8000/health`
+
 ## Quick Start
 ```bash
 git clone https://github.com/danieloza/DANIELOZAHUB3.git
