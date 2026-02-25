@@ -8,6 +8,9 @@ uvicorn.log
 logs/
 backups/
 *.db
+*.db-wal
+*.db-shm
+uvicorn*.log
 
 .env.*
 !.env.example
