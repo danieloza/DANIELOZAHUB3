@@ -2,8 +2,6 @@
 
 [![CI](https://github.com/danieloza/DANIELOZAHUB3/actions/workflows/ci.yml/badge.svg)](https://github.com/danieloza/DANIELOZAHUB3/actions/workflows/ci.yml)
 
-> PL: Repo jest prowadzone po angielsku (dla szerszej widocznosci), ale produkt i UX sa przygotowane pod polski rynek beauty.
-
 ## TL;DR (60s)
 Start SalonOS API:
 ```powershell
@@ -11,8 +9,8 @@ Start SalonOS API:
 ```
 
 Run quality gate:
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q tests
+```bash
+python -m pytest -q tests
 ```
 
 Local demo pair:
@@ -36,12 +34,30 @@ SalonOS is the core booking and visit management system (FastAPI + Telegram bot)
 - Danex Business API is the gateway/admin/public layer over SalonOS
 
 ## Quick Start
-```powershell
-cd C:\Users\syfsy\projekty\salonos
+```bash
+git clone https://github.com/danieloza/DANIELOZAHUB3.git
+cd DANIELOZAHUB3
 python -m venv .venv
-.\.venv\Scripts\activate
+```
+
+Activate virtual environment:
+```bash
+# macOS/Linux
+source .venv/bin/activate
+
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+```
+
+Install dependencies and configure environment:
+```bash
 pip install -r requirements.txt
-copy .env.example .env
+cp .env.example .env
+```
+
+Windows alternative for env file:
+```powershell
+Copy-Item .env.example .env
 ```
 
 Set `TELEGRAM_BOT_TOKEN` in `.env`.
@@ -120,8 +136,8 @@ Swagger and health:
 - `GET /health/ready`
 
 ## Quality Gates
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q tests
+```bash
+python -m pytest -q tests
 ```
 
 ## Operations Scripts
@@ -195,6 +211,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\alembic_upgrade.ps1 -Revision
 - performance profiles (k6)
 - DR runbook + release automation
 
-## Polish Short Note
+## Documentation Note
 Main documentation is in English for broader reach.
-Lokalny workflow, skrypty i komendy pozostaja zgodne z obecnym wdrozeniem.
+Operational scripts remain aligned with the local deployment workflow.
+
+## Release and License
+- Release: `v0.1.0`
+- License: `MIT` (see `LICENSE`)
+- Changelog: `CHANGELOG.md`
