@@ -1,5 +1,4 @@
 import json
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
@@ -9,14 +8,14 @@ from .authn import AuthIdentity, extract_identity_from_authorization_header
 from .db import get_db
 from .models import Tenant
 from .platform import (
+    capture_payment_intent,
     cleanup_idempotency_records,
     cleanup_outbox_events,
-    capture_payment_intent,
     create_payment_intent,
     dispatch_outbox_events,
     get_idempotency_health,
-    get_outbox_health,
     get_or_create_no_show_policy,
+    get_outbox_health,
     is_feature_enabled,
     list_feature_flags,
     list_outbox_events,
@@ -48,34 +47,50 @@ class NoShowPolicyIn(BaseModel):
 class PaymentIntentIn(BaseModel):
     amount: float = Field(gt=0)
     reason: str = Field(default="deposit", min_length=2, max_length=80)
-    reservation_id: Optional[int] = None
-    visit_id: Optional[int] = None
-    client_id: Optional[int] = None
-    currency: Optional[str] = None
+    reservation_id: int | None = None
+    visit_id: int | None = None
+    client_id: int | None = None
+    currency: str | None = None
     metadata: dict = Field(default_factory=dict)
 
 
 def _require_identity(request: Request) -> AuthIdentity:
-    identity = extract_identity_from_authorization_header(request.headers.get("authorization"))
+    identity = extract_identity_from_authorization_header(
+        request.headers.get("authorization")
+    )
     if not identity:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing or invalid bearer token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid bearer token",
+        )
     return identity
 
 
 def _require_role(identity: AuthIdentity, allowed_roles: set[str]) -> None:
     role = (identity.role or "").strip().lower()
     if role not in allowed_roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden role")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden role"
+        )
 
 
-def _resolve_tenant(db: Session, request: Request, x_tenant_slug: Optional[str], identity: AuthIdentity) -> Tenant:
-    header_slug = (x_tenant_slug or request.headers.get("x-tenant-slug") or "").strip().lower()
+def _resolve_tenant(
+    db: Session, request: Request, x_tenant_slug: str | None, identity: AuthIdentity
+) -> Tenant:
+    header_slug = (
+        (x_tenant_slug or request.headers.get("x-tenant-slug") or "").strip().lower()
+    )
     token_slug = (identity.tenant_slug or "").strip().lower()
     if header_slug and token_slug and header_slug != token_slug:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant mismatch with bearer token")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tenant mismatch with bearer token",
+        )
     slug = header_slug or token_slug
     if not slug:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing X-Tenant-Slug")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Missing X-Tenant-Slug"
+        )
     return get_or_create_tenant(db=db, slug=slug, name=slug)
 
 
@@ -83,7 +98,7 @@ def _resolve_tenant(db: Session, request: Request, x_tenant_slug: Optional[str],
 def set_feature_flag(
     payload: FeatureFlagSetIn,
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
@@ -115,7 +130,7 @@ def set_feature_flag(
 @router.get("/flags", response_model=list[dict])
 def get_feature_flags(
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
@@ -139,9 +154,9 @@ def get_feature_flags(
 @router.get("/flags/evaluate", response_model=dict)
 def evaluate_feature_flag(
     flag_key: str = Query(..., min_length=2, max_length=120),
-    subject_key: Optional[str] = Query(default=None),
+    subject_key: str | None = Query(default=None),
     request: Request = None,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
@@ -150,7 +165,11 @@ def evaluate_feature_flag(
     return {
         "flag_key": flag_key,
         "subject_key": subject_key,
-        "enabled": bool(is_feature_enabled(db=db, tenant_id=tenant.id, flag_key=flag_key, subject_key=subject_key)),
+        "enabled": bool(
+            is_feature_enabled(
+                db=db, tenant_id=tenant.id, flag_key=flag_key, subject_key=subject_key
+            )
+        ),
     }
 
 
@@ -158,7 +177,7 @@ def evaluate_feature_flag(
 def set_no_show_policy(
     payload: NoShowPolicyIn,
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
@@ -184,7 +203,7 @@ def set_no_show_policy(
 @router.get("/no-show-policy", response_model=dict)
 def get_no_show_policy(
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
@@ -204,7 +223,7 @@ def get_no_show_policy(
 def create_payment_intent_endpoint(
     payload: PaymentIntentIn,
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
@@ -237,16 +256,23 @@ def create_payment_intent_endpoint(
 def capture_payment_intent_endpoint(
     payment_intent_id: int,
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
-    provider_ref: Optional[str] = Query(default=None),
+    x_tenant_slug: str | None = Header(default=None),
+    provider_ref: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
     _require_role(identity, MUTATE_ROLES)
     tenant = _resolve_tenant(db, request, x_tenant_slug, identity)
-    row = capture_payment_intent(db=db, tenant_id=tenant.id, payment_intent_id=payment_intent_id, provider_ref=provider_ref)
+    row = capture_payment_intent(
+        db=db,
+        tenant_id=tenant.id,
+        payment_intent_id=payment_intent_id,
+        provider_ref=provider_ref,
+    )
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment intent not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Payment intent not found"
+        )
     return {
         "id": row.id,
         "status": row.status,
@@ -258,15 +284,17 @@ def capture_payment_intent_endpoint(
 @router.get("/payments/intents", response_model=list[dict])
 def list_payment_intents_endpoint(
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
-    status_filter: Optional[str] = Query(default=None, alias="status"),
+    x_tenant_slug: str | None = Header(default=None),
+    status_filter: str | None = Query(default=None, alias="status"),
     limit: int = Query(default=200, ge=1, le=1000),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
     _require_role(identity, READ_ROLES)
     tenant = _resolve_tenant(db, request, x_tenant_slug, identity)
-    rows = list_payment_intents(db=db, tenant_id=tenant.id, status=status_filter, limit=limit)
+    rows = list_payment_intents(
+        db=db, tenant_id=tenant.id, status=status_filter, limit=limit
+    )
     return [
         {
             "id": row.id,
@@ -289,7 +317,7 @@ def list_payment_intents_endpoint(
 @router.post("/outbox/dispatch", response_model=dict)
 def dispatch_outbox(
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     batch_size: int = Query(default=50, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
@@ -302,15 +330,17 @@ def dispatch_outbox(
 @router.get("/outbox/events", response_model=list[dict])
 def get_outbox_events(
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
-    status_filter: Optional[str] = Query(default=None, alias="status"),
+    x_tenant_slug: str | None = Header(default=None),
+    status_filter: str | None = Query(default=None, alias="status"),
     limit: int = Query(default=200, ge=1, le=1000),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
     _require_role(identity, READ_ROLES)
     tenant = _resolve_tenant(db, request, x_tenant_slug, identity)
-    rows = list_outbox_events(db=db, tenant_id=tenant.id, status=status_filter, limit=limit)
+    rows = list_outbox_events(
+        db=db, tenant_id=tenant.id, status=status_filter, limit=limit
+    )
     return [
         {
             "id": row.id,
@@ -331,7 +361,7 @@ def get_outbox_events(
 @router.post("/outbox/retry-failed", response_model=dict)
 def retry_failed_outbox(
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     include_dead_letter: bool = Query(default=False),
     limit: int = Query(default=100, ge=1, le=1000),
     db: Session = Depends(get_db),
@@ -350,7 +380,7 @@ def retry_failed_outbox(
 @router.get("/outbox/health", response_model=dict)
 def outbox_health(
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
@@ -362,20 +392,22 @@ def outbox_health(
 @router.post("/outbox/cleanup", response_model=dict)
 def cleanup_outbox(
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     older_than_hours: int = Query(default=24 * 7, ge=1, le=24 * 365),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
     _require_role(identity, MUTATE_ROLES)
     tenant = _resolve_tenant(db, request, x_tenant_slug, identity)
-    return cleanup_outbox_events(db=db, tenant_id=tenant.id, older_than_hours=older_than_hours)
+    return cleanup_outbox_events(
+        db=db, tenant_id=tenant.id, older_than_hours=older_than_hours
+    )
 
 
 @router.get("/idempotency/health", response_model=dict)
 def idempotency_health(
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _require_identity(request)
@@ -387,7 +419,7 @@ def idempotency_health(
 @router.post("/idempotency/cleanup", response_model=dict)
 def idempotency_cleanup(
     request: Request,
-    x_tenant_slug: Optional[str] = Header(default=None),
+    x_tenant_slug: str | None = Header(default=None),
     older_than_hours: int = Query(default=168, ge=1, le=24 * 365),
     db: Session = Depends(get_db),
 ):

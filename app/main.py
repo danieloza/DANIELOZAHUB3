@@ -1,20 +1,28 @@
 import time
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 
+import redis
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-import redis
-
-from .auth_api import router as auth_router
-from .authn import extract_identity_from_authorization_header
 from .api import public_router, router
+from .auth_api import router as auth_api_router
+from .authn import extract_identity_from_authorization_header
 from .config import settings
 from .db import Base, SessionLocal, engine, run_schema_migrations
 from .idempotency import idempotency_middleware
-from .observability import configure_logging, emit_json_log, record_http_event
+from .api_messenger import router as messenger_router
+from .api_payments import router as payments_router
+from .api_auth import router as legacy_auth_router
+from .core.observability import setup_logging, request_tracing_middleware
+from .core.email_watcher import check_for_new_bookings
+from .core.metrics_ext import PerformanceBudgetMiddleware, generate_latest
+from .core.honeypot import HoneypotMiddleware
+from .core.audit_pii import PIIAuditMiddleware
+from .core.shadow_ban import ShadowBanMiddleware
 from .platform_api import router as platform_router
 from .request_context import actor_email_ctx, actor_role_ctx, tenant_slug_ctx
 
@@ -51,15 +59,77 @@ elif bool(settings.DB_SCHEMA_CHECK_ON_STARTUP):
         with SessionLocal() as db:
             db.execute(text("SELECT 1 FROM tenants LIMIT 1"))
     except Exception as exc:
-        raise RuntimeError("Database schema check failed. Run migrations before starting API.") from exc
-configure_logging()
+        raise RuntimeError(
+            "Database schema check failed. Run migrations before starting API."
+        ) from exc
+
+setup_logging()
+
+# Senior IT: Sentry Integration
+if settings.SENTRY_DSN:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+        environment=settings.APP_ENV,
+    )
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address)
+import asyncio
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Senior IT: Start background tasks
+    async def email_sync_loop():
+        while True:
+            await check_for_new_bookings()
+            await asyncio.sleep(300) # Every 5 minutes
+            
+    loop_task = asyncio.create_task(email_sync_loop())
+    yield
+    loop_task.cancel()
 
 app = FastAPI(
     title="SalonOS",
     description="Telegram-driven salon management API",
     version=_read_app_version(),
+    lifespan=lifespan
 )
+
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.state.session_local = SessionLocal
+
+# Senior IT: Security first (Honeypot, ShadowBan)
+app.add_middleware(ShadowBanMiddleware)
+app.add_middleware(HoneypotMiddleware)
+app.add_middleware(PerformanceBudgetMiddleware)
+app.add_middleware(PIIAuditMiddleware)
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type="text/plain")
+
+# Senior IT: Global tracing comes first
+@app.middleware("http")
+async def tracing_wrapper(request: Request, call_next):
+    return await request_tracing_middleware(request, call_next)
 
 
 @app.middleware("http")
@@ -68,7 +138,9 @@ async def auth_context_middleware(request: Request, call_next):
     actor_role = (request.headers.get("x-actor-role") or "").strip().lower() or None
     tenant_slug = (request.headers.get("x-tenant-slug") or "").strip().lower() or None
 
-    identity = extract_identity_from_authorization_header(request.headers.get("authorization"))
+    identity = extract_identity_from_authorization_header(
+        request.headers.get("authorization")
+    )
     if identity:
         actor_email = actor_email or identity.email
         actor_role = actor_role or identity.role
@@ -95,7 +167,10 @@ async def maintenance_mode_middleware(request: Request, call_next):
             )
 
     if bool(settings.MAINTENANCE_READ_ONLY):
-        if method not in {"GET", "HEAD", "OPTIONS"} and path not in _READ_ONLY_BYPASS_PATHS:
+        if (
+            method not in {"GET", "HEAD", "OPTIONS"}
+            and path not in _READ_ONLY_BYPASS_PATHS
+        ):
             return JSONResponse(
                 status_code=503,
                 content={"detail": "Service is in read-only mode"},
@@ -110,73 +185,19 @@ async def app_idempotency_middleware(request: Request, call_next):
 
 
 @app.middleware("http")
-async def request_observability_middleware(request: Request, call_next):
-    request_id = (request.headers.get("x-request-id") or "").strip() or str(uuid.uuid4())
-    tenant_slug = (request.headers.get("x-tenant-slug") or "").strip().lower() or None
-    start = time.perf_counter()
-
-    try:
-        response = await call_next(request)
-        status_code = int(response.status_code)
-    except Exception as exc:
-        duration_ms = round((time.perf_counter() - start) * 1000.0, 2)
-        record_http_event(
-            method=request.method,
-            path=request.url.path,
-            status_code=500,
-            duration_ms=duration_ms,
-            request_id=request_id,
-            tenant_slug=tenant_slug,
-        )
-        emit_json_log(
-            {
-                "level": "error",
-                "event": "http_request",
-                "request_id": request_id,
-                "method": request.method,
-                "path": request.url.path,
-                "status_code": 500,
-                "duration_ms": duration_ms,
-                "tenant_slug": tenant_slug,
-                "error": str(exc),
-            }
-        )
-        return JSONResponse(status_code=500, content={"detail": "Internal Server Error"}, headers={"X-Request-ID": request_id})
-
-    duration_ms = round((time.perf_counter() - start) * 1000.0, 2)
-    record_http_event(
-        method=request.method,
-        path=request.url.path,
-        status_code=status_code,
-        duration_ms=duration_ms,
-        request_id=request_id,
-        tenant_slug=tenant_slug,
-    )
-    emit_json_log(
-        {
-            "level": "info",
-            "event": "http_request",
-            "request_id": request_id,
-            "method": request.method,
-            "path": request.url.path,
-            "status_code": status_code,
-            "duration_ms": duration_ms,
-            "tenant_slug": tenant_slug,
-        }
-    )
-    response.headers["X-Request-ID"] = request_id
-    return response
-
-
-@app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
     response = await call_next(request)
     if bool(settings.SECURITY_HEADERS_ENABLED):
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "no-referrer")
-        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        response.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+        response.headers.setdefault(
+            "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
+        )
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; frame-ancestors 'none'"
+        )
         response.headers.setdefault("Cache-Control", "no-store")
     return response
 
@@ -224,10 +245,15 @@ def ready():
 
     if db_ok and (not bool(settings.EVENT_BUS_ENABLED) or redis_ok):
         return {"status": "ready", "checks": checks}
-    return JSONResponse(status_code=503, content={"status": "not_ready", "checks": checks})
+    return JSONResponse(
+        status_code=503, content={"status": "not_ready", "checks": checks}
+    )
 
 
 app.include_router(router)
 app.include_router(public_router)
-app.include_router(auth_router)
+app.include_router(auth_api_router)
 app.include_router(platform_router)
+app.include_router(messenger_router)
+app.include_router(payments_router)
+app.include_router(legacy_auth_router)

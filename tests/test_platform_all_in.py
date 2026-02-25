@@ -1,18 +1,18 @@
-import pyotp
 from datetime import timedelta
 from uuid import uuid4
 
+import pyotp
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
-from app.auth_api import router as auth_router
 from app.api import get_db, public_router, router
+from app.auth_api import router as auth_router
 from app.config import settings
 from app.db import Base
 from app.idempotency import idempotency_middleware
-from app.models import AuditLog, AuthSession, IdempotencyRecord, OutboxEvent, Tenant
+from app.models import AuthSession, IdempotencyRecord, OutboxEvent, Tenant
 from app.platform_api import router as platform_router
 
 
@@ -44,7 +44,12 @@ def make_client(tmp_path):
     return client
 
 
-def _platform_auth_headers(client: TestClient, tenant: str, email: str = "owner@salonos.local", role: str = "owner") -> dict:
+def _platform_auth_headers(
+    client: TestClient,
+    tenant: str,
+    email: str = "owner@salonos.local",
+    role: str = "owner",
+) -> dict:
     register = client.post(
         "/auth/register",
         json={
@@ -125,7 +130,11 @@ def test_auth_jwt_mfa_flow(tmp_path):
     secret = setup.json()["secret"]
     code = pyotp.TOTP(secret).now()
 
-    verify = client.post("/auth/mfa/verify", headers={"Authorization": f"Bearer {token}"}, json={"code": code})
+    verify = client.post(
+        "/auth/mfa/verify",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"code": code},
+    )
     assert verify.status_code == 200
     assert verify.json()["mfa_enabled"] is True
 
@@ -139,7 +148,10 @@ def test_auth_jwt_mfa_flow(tmp_path):
         },
     )
     assert login_mfa.status_code == 200
-    me = client.get("/auth/me", headers={"Authorization": f"Bearer {login_mfa.json()['access_token']}"})
+    me = client.get(
+        "/auth/me",
+        headers={"Authorization": f"Bearer {login_mfa.json()['access_token']}"},
+    )
     assert me.status_code == 200
     assert me.json()["role"] == "owner"
 
@@ -365,10 +377,15 @@ def test_auth_sessions_list_revoke_and_cleanup(tmp_path):
     assert refresh_after_revoke.status_code == 401
 
     with client.testing_session_local() as db:
-        tenant_row = db.execute(select(Tenant).where(Tenant.slug == tenant)).scalar_one()
+        tenant_row = db.execute(
+            select(Tenant).where(Tenant.slug == tenant)
+        ).scalar_one()
         active_row = (
             db.query(AuthSession)
-            .filter(AuthSession.tenant_id == tenant_row.id, AuthSession.is_revoked.is_(False))
+            .filter(
+                AuthSession.tenant_id == tenant_row.id,
+                AuthSession.is_revoked.is_(False),
+            )
             .order_by(AuthSession.id.asc())
             .first()
         )
@@ -471,7 +488,10 @@ def test_auth_max_active_sessions_limit_revokes_oldest(tmp_path):
 
         refresh1 = client.post(
             "/auth/refresh",
-            json={"tenant_slug": tenant, "refresh_token": login1.json()["refresh_token"]},
+            json={
+                "tenant_slug": tenant,
+                "refresh_token": login1.json()["refresh_token"],
+            },
         )
         assert refresh1.status_code == 401
     finally:
@@ -564,7 +584,9 @@ def test_outbox_dead_letter_retry_and_health(tmp_path):
         settings.REDIS_URL = "redis://127.0.0.1:6399/0"
         settings.OUTBOX_MAX_RETRIES = 1
 
-        dispatch = client.post("/api/platform/outbox/dispatch", headers=platform_headers)
+        dispatch = client.post(
+            "/api/platform/outbox/dispatch", headers=platform_headers
+        )
         assert dispatch.status_code == 200
         assert dispatch.json()["dead_lettered"] >= 1
 
@@ -580,7 +602,9 @@ def test_outbox_dead_letter_retry_and_health(tmp_path):
         assert retry.status_code == 200
         assert retry.json()["retried"] >= 1
     finally:
-        settings.EVENT_BUS_ENABLED, settings.REDIS_URL, settings.OUTBOX_MAX_RETRIES = previous
+        settings.EVENT_BUS_ENABLED, settings.REDIS_URL, settings.OUTBOX_MAX_RETRIES = (
+            previous
+        )
 
 
 def test_outbox_cleanup_removes_old_published_and_dead_letter(tmp_path):
@@ -601,7 +625,9 @@ def test_outbox_cleanup_removes_old_published_and_dead_letter(tmp_path):
     assert create.status_code == 200
 
     with client.testing_session_local() as db:
-        tenant_row = db.execute(select(Tenant).where(Tenant.slug == tenant)).scalar_one()
+        tenant_row = db.execute(
+            select(Tenant).where(Tenant.slug == tenant)
+        ).scalar_one()
         row = (
             db.query(OutboxEvent)
             .filter(OutboxEvent.tenant_id == tenant_row.id)
@@ -666,7 +692,9 @@ def test_idempotency_health_and_cleanup(tmp_path):
 
 def test_platform_requires_bearer_token(tmp_path):
     client = make_client(tmp_path)
-    response = client.get("/api/platform/flags", headers={"X-Tenant-Slug": "missing-token"})
+    response = client.get(
+        "/api/platform/flags", headers={"X-Tenant-Slug": "missing-token"}
+    )
     assert response.status_code == 401
 
 
@@ -703,7 +731,11 @@ def test_auth_require_mfa_blocks_non_mfa_user(tmp_path):
 def test_audit_logs_filters(tmp_path):
     client = make_client(tmp_path)
     tenant = "audit-filters"
-    headers = {"X-Tenant-Slug": tenant, "X-Actor-Email": "owner@salonos.local", "X-Actor-Role": "owner"}
+    headers = {
+        "X-Tenant-Slug": tenant,
+        "X-Actor-Email": "owner@salonos.local",
+        "X-Actor-Role": "owner",
+    }
     create = client.post(
         "/api/visits",
         headers=headers,
@@ -731,4 +763,7 @@ def test_audit_logs_filters(tmp_path):
     assert logs.status_code == 200
     rows = logs.json()
     assert len(rows) >= 1
-    assert any(row["action"] == "visit.create" and row["resource_type"] == "visit" for row in rows)
+    assert any(
+        row["action"] == "visit.create" and row["resource_type"] == "visit"
+        for row in rows
+    )

@@ -1,7 +1,4 @@
-﻿# -*- coding: utf-8 -*-
-
 from datetime import date
-from typing import Optional
 
 EMPLOYEES = ["Magda", "Kamila", "Taja"]
 
@@ -45,7 +42,7 @@ PRICE_PRESETS = [150, 200, 250, 300, 320, 350, 400]
 DEFAULT_DURATION_MIN = 30
 
 
-def _parse_day(day_iso: Optional[str]) -> Optional[date]:
+def _parse_day(day_iso: str | None) -> date | None:
     if not day_iso:
         return None
     try:
@@ -62,7 +59,9 @@ def _normalize_hours(start: int, end: int) -> tuple[int, int]:
     return start_i, end_i
 
 
-def get_employee_hours(employee_name: str, day_iso: Optional[str] = None) -> Optional[tuple[int, int]]:
+def get_employee_hours(
+    employee_name: str, day_iso: str | None = None
+) -> tuple[int, int] | None:
     base = EMPLOYEE_WORK_HOURS.get(employee_name) or {"start": 9, "end": 18}
     start_h, end_h = _normalize_hours(base.get("start", 9), base.get("end", 18))
 
@@ -85,7 +84,7 @@ def is_within_employee_hours(
     hour: int,
     minute: int,
     duration_min: int,
-    day_iso: Optional[str] = None,
+    day_iso: str | None = None,
 ) -> bool:
     hours = get_employee_hours(employee_name, day_iso)
     if not hours:

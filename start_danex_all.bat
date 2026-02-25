@@ -29,7 +29,7 @@ timeout /t 1 >nul
 REM === DANEX FAKTURY BOT ===
 echo [3/3] Uruchamiam Danex Faktury BOT...
 start "Danex Faktury BOT" cmd /k ^
-cd /d C:\Users\syfsy\danex-faktury-bot ^& ^
+cd /d C:\Users\syfsy\projekty\danex-faktury-bot ^& ^
 call .venv\Scripts\activate.bat ^& ^
 python --version ^& ^
 python bot.py

@@ -1,13 +1,12 @@
-from collections import defaultdict, deque
-from datetime import datetime, timedelta, timezone
 import hmac
 import secrets
+from collections import defaultdict, deque
+from datetime import datetime, timedelta, timezone
 from threading import Lock
-from typing import Optional
 
+import redis
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
-import redis
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -25,8 +24,8 @@ from .authn import (
     get_user,
     list_refresh_sessions,
     mfa_uri,
-    revoke_refresh_session,
     revoke_all_refresh_sessions_for_user,
+    revoke_refresh_session,
     revoke_refresh_session_by_token,
     use_refresh_session,
     verify_mfa_code,
@@ -52,7 +51,7 @@ class AuthLoginIn(BaseModel):
     tenant_slug: str = Field(min_length=2, max_length=80)
     email: str = Field(min_length=3, max_length=160)
     password: str = Field(min_length=8, max_length=200)
-    mfa_code: Optional[str] = Field(default=None, min_length=6, max_length=12)
+    mfa_code: str | None = Field(default=None, min_length=6, max_length=12)
 
 
 class AuthRefreshIn(BaseModel):
@@ -117,18 +116,23 @@ class AuthPasswordChangeOut(BaseModel):
 def _resolve_tenant(db: Session, tenant_slug: str) -> Tenant:
     slug = tenant_slug.strip().lower()
     if not slug:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="tenant_slug is required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="tenant_slug is required"
+        )
     return get_or_create_tenant(db=db, slug=slug, name=slug)
 
 
-def _identity_from_auth_header(authorization: Optional[str]) -> AuthIdentity:
+def _identity_from_auth_header(authorization: str | None) -> AuthIdentity:
     identity = extract_identity_from_authorization_header(authorization)
     if not identity:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing bearer token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing bearer token",
+        )
     return identity
 
 
-def _client_ip_from_request(request: Optional[Request]) -> str:
+def _client_ip_from_request(request: Request | None) -> str:
     if request is None:
         return "unknown"
     xff = (request.headers.get("x-forwarded-for") or "").strip()
@@ -252,14 +256,16 @@ def _clear_login_failures(tenant_slug: str, email: str, client_ip: str) -> None:
 @router.post("/register", response_model=AuthMeOut)
 def register(
     payload: AuthRegisterIn,
-    x_admin_api_key: Optional[str] = Header(default=None),
+    x_admin_api_key: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     # Register is admin-protected when ADMIN_API_KEY is configured.
     expected = (settings.ADMIN_API_KEY or "").strip()
     incoming = (x_admin_api_key or "").strip()
     if expected and not hmac.compare_digest(expected, incoming):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin API key")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin API key"
+        )
 
     tenant = _resolve_tenant(db, payload.tenant_slug)
     try:
@@ -286,18 +292,29 @@ def login(payload: AuthLoginIn, request: Request, db: Session = Depends(get_db))
     tenant = _resolve_tenant(db, payload.tenant_slug)
     client_ip = _client_ip_from_request(request)
     if _is_login_rate_limited(tenant.slug, payload.email, client_ip):
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many failed login attempts")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts",
+        )
     user = authenticate_user(db, tenant, payload.email, payload.password)
     if not user:
         _record_login_failure(tenant.slug, payload.email, client_ip)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+        )
     if bool(settings.AUTH_REQUIRE_MFA) and not bool(user.mfa_enabled):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="MFA setup required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="MFA setup required"
+        )
 
     if user.mfa_enabled:
-        if not payload.mfa_code or not verify_mfa_code(user.mfa_secret or "", payload.mfa_code):
+        if not payload.mfa_code or not verify_mfa_code(
+            user.mfa_secret or "", payload.mfa_code
+        ):
             _record_login_failure(tenant.slug, payload.email, client_ip)
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA code")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA code"
+            )
         amr = "pwd+mfa"
     else:
         amr = "pwd"
@@ -327,12 +344,18 @@ def refresh(payload: AuthRefreshIn, db: Session = Depends(get_db)):
     tenant = _resolve_tenant(db, payload.tenant_slug)
     session = use_refresh_session(db, tenant.id, payload.refresh_token)
     if not session:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
     user = db.execute(
-        select(AuthUser).where(AuthUser.id == session.user_id, AuthUser.tenant_id == tenant.id)
+        select(AuthUser).where(
+            AuthUser.id == session.user_id, AuthUser.tenant_id == tenant.id
+        )
     ).scalar_one_or_none()
     if not user or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User inactive")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User inactive"
+        )
 
     revoke_refresh_session(db, session.id)
     identity = AuthIdentity(
@@ -359,26 +382,42 @@ def logout(payload: AuthRefreshIn, db: Session = Depends(get_db)):
     tenant = _resolve_tenant(db, payload.tenant_slug)
     revoked = revoke_refresh_session_by_token(db, tenant.id, payload.refresh_token)
     if not revoked:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
     return AuthLogoutOut(ok=True)
 
 
 @router.get("/sessions", response_model=list[AuthSessionOut])
 def list_sessions(
     scope: str = Query(default="self", pattern="^(self|tenant)$"),
-    authorization: Optional[str] = Header(default=None),
+    authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _identity_from_auth_header(authorization)
-    tenant = db.execute(select(Tenant).where(Tenant.slug == identity.tenant_slug)).scalar_one_or_none()
+    tenant = db.execute(
+        select(Tenant).where(Tenant.slug == identity.tenant_slug)
+    ).scalar_one_or_none()
     if not tenant:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant"
+        )
     if scope == "tenant":
         if identity.role not in {"owner", "manager"}:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden scope")
-        rows = list_refresh_sessions(db, tenant_id=tenant.id, user_id=None, include_revoked=False, limit=500)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden scope"
+            )
+        rows = list_refresh_sessions(
+            db, tenant_id=tenant.id, user_id=None, include_revoked=False, limit=500
+        )
     else:
-        rows = list_refresh_sessions(db, tenant_id=tenant.id, user_id=identity.user_id, include_revoked=False, limit=200)
+        rows = list_refresh_sessions(
+            db,
+            tenant_id=tenant.id,
+            user_id=identity.user_id,
+            include_revoked=False,
+            limit=200,
+        )
     return [
         AuthSessionOut(
             id=row.id,
@@ -394,47 +433,70 @@ def list_sessions(
 @router.post("/sessions/{session_id}/revoke", response_model=AuthLogoutOut)
 def revoke_session(
     session_id: int,
-    authorization: Optional[str] = Header(default=None),
+    authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _identity_from_auth_header(authorization)
-    tenant = db.execute(select(Tenant).where(Tenant.slug == identity.tenant_slug)).scalar_one_or_none()
+    tenant = db.execute(
+        select(Tenant).where(Tenant.slug == identity.tenant_slug)
+    ).scalar_one_or_none()
     if not tenant:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant"
+        )
     row = get_refresh_session_by_id(db, tenant_id=tenant.id, session_id=session_id)
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
-    if identity.role not in {"owner", "manager"} and int(row.user_id) != int(identity.user_id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden session")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
+    if identity.role not in {"owner", "manager"} and int(row.user_id) != int(
+        identity.user_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden session"
+        )
     revoke_refresh_session(db, row.id)
     return AuthLogoutOut(ok=True)
 
 
 @router.post("/sessions/cleanup", response_model=AuthSessionsCleanupOut)
 def cleanup_sessions(
-    authorization: Optional[str] = Header(default=None),
+    authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _identity_from_auth_header(authorization)
     if identity.role not in {"owner", "manager"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only owner/manager can cleanup tenant sessions")
-    tenant = db.execute(select(Tenant).where(Tenant.slug == identity.tenant_slug)).scalar_one_or_none()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only owner/manager can cleanup tenant sessions",
+        )
+    tenant = db.execute(
+        select(Tenant).where(Tenant.slug == identity.tenant_slug)
+    ).scalar_one_or_none()
     if not tenant:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant"
+        )
     cleaned = cleanup_expired_refresh_sessions(db, tenant_id=tenant.id)
-    return AuthSessionsCleanupOut(tenant_slug=tenant.slug, revoked_expired_sessions=cleaned)
+    return AuthSessionsCleanupOut(
+        tenant_slug=tenant.slug, revoked_expired_sessions=cleaned
+    )
 
 
 @router.post("/password/change", response_model=AuthPasswordChangeOut)
 def change_password(
     payload: AuthPasswordChangeIn,
-    authorization: Optional[str] = Header(default=None),
+    authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _identity_from_auth_header(authorization)
-    tenant = db.execute(select(Tenant).where(Tenant.slug == identity.tenant_slug)).scalar_one_or_none()
+    tenant = db.execute(
+        select(Tenant).where(Tenant.slug == identity.tenant_slug)
+    ).scalar_one_or_none()
     if not tenant:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant"
+        )
     try:
         _ = change_user_password(
             db=db,
@@ -445,13 +507,15 @@ def change_password(
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
-    revoked = revoke_all_refresh_sessions_for_user(db, tenant_id=tenant.id, user_id=identity.user_id)
+    revoked = revoke_all_refresh_sessions_for_user(
+        db, tenant_id=tenant.id, user_id=identity.user_id
+    )
     return AuthPasswordChangeOut(ok=True, revoked_sessions=int(revoked))
 
 
 @router.get("/me", response_model=AuthMeOut)
 def me(
-    authorization: Optional[str] = Header(default=None),
+    authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _identity_from_auth_header(authorization)
@@ -459,10 +523,14 @@ def me(
         select(Tenant).where(Tenant.slug == identity.tenant_slug)
     ).scalar_one_or_none()
     if not tenant:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant"
+        )
     user = get_user(db, tenant.id, identity.email)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown user")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown user"
+        )
     return AuthMeOut(
         tenant_slug=identity.tenant_slug,
         email=identity.email,
@@ -474,7 +542,7 @@ def me(
 
 @router.post("/mfa/setup", response_model=MfaSetupOut)
 def mfa_setup(
-    authorization: Optional[str] = Header(default=None),
+    authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _identity_from_auth_header(authorization)
@@ -482,10 +550,14 @@ def mfa_setup(
         select(Tenant).where(Tenant.slug == identity.tenant_slug)
     ).scalar_one_or_none()
     if not tenant:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant"
+        )
     user = get_user(db, tenant.id, identity.email)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown user")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown user"
+        )
     secret = generate_mfa_secret()
     user.mfa_secret = secret
     user.mfa_enabled = False
@@ -497,7 +569,7 @@ def mfa_setup(
 @router.post("/mfa/verify", response_model=AuthMeOut)
 def mfa_verify(
     payload: MfaVerifyIn,
-    authorization: Optional[str] = Header(default=None),
+    authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
     identity = _identity_from_auth_header(authorization)
@@ -505,12 +577,18 @@ def mfa_verify(
         select(Tenant).where(Tenant.slug == identity.tenant_slug)
     ).scalar_one_or_none()
     if not tenant:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown tenant"
+        )
     user = get_user(db, tenant.id, identity.email)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown user")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown user"
+        )
     if not verify_mfa_code(user.mfa_secret or "", payload.code):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid MFA code")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid MFA code"
+        )
     user.mfa_enabled = True
     user.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()

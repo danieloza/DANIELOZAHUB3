@@ -63,7 +63,9 @@ def _handle_cleanup_retention(db, job) -> dict:
 def _handle_calendar_sync_push(db, job) -> dict:
     payload = _payload(job)
     event_id = int(payload.get("sync_event_id"))
-    event = db.execute(select(CalendarSyncEvent).where(CalendarSyncEvent.id == event_id)).scalar_one_or_none()
+    event = db.execute(
+        select(CalendarSyncEvent).where(CalendarSyncEvent.id == event_id)
+    ).scalar_one_or_none()
     if not event:
         raise RuntimeError("calendar sync event not found")
 
@@ -102,14 +104,20 @@ def _handle_calendar_sync_push(db, job) -> dict:
             secret = _first_webhook_secret(conn.webhook_secret)
             if secret:
                 headers["X-Webhook-Secret"] = secret
-            response = requests.post(conn.outbound_webhook_url, json=body, headers=headers, timeout=10)
+            response = requests.post(
+                conn.outbound_webhook_url, json=body, headers=headers, timeout=10
+            )
             response.raise_for_status()
 
         event.status = "synced"
         event.last_error = None
         event.updated_at = utc_now_naive()
         db.commit()
-        return {"sync_event_id": event.id, "provider": event.provider, "sent": bool(conn.outbound_webhook_url)}
+        return {
+            "sync_event_id": event.id,
+            "provider": event.provider,
+            "sent": bool(conn.outbound_webhook_url),
+        }
     except Exception as exc:
         event.status = "failed"
         event.retries = int(event.retries or 0) + 1
@@ -139,7 +147,10 @@ def _handle_alert_route_delivery(db, job) -> dict:
         out_dir = ROOT / "logs" / "alert_mail_fallback"
         out_dir.mkdir(parents=True, exist_ok=True)
         file_path = out_dir / f"mail_alert_job_{job.id}.json"
-        file_path.write_text(json.dumps({"to": target, "message": message}, ensure_ascii=True), encoding="utf-8")
+        file_path.write_text(
+            json.dumps({"to": target, "message": message}, ensure_ascii=True),
+            encoding="utf-8",
+        )
     else:
         raise RuntimeError(f"Unsupported alert channel: {channel}")
     return {"channel": channel, "target": target}
@@ -165,7 +176,9 @@ HANDLERS = {
 
 def process_once(queue: str, worker_id: str, batch_size: int) -> int:
     with SessionLocal() as db:
-        jobs = claim_due_background_jobs(db=db, worker_id=worker_id, queue=queue, limit=batch_size)
+        jobs = claim_due_background_jobs(
+            db=db, worker_id=worker_id, queue=queue, limit=batch_size
+        )
 
     processed = 0
     for job in jobs:
@@ -177,22 +190,43 @@ def process_once(queue: str, worker_id: str, batch_size: int) -> int:
                 result = handler(db, job)
                 mark_background_job_success(db=db, job_id=job.id, result=result)
             except Exception as exc:
-                mark_background_job_failure(db=db, job_id=job.id, error_message=str(exc))
+                mark_background_job_failure(
+                    db=db, job_id=job.id, error_message=str(exc)
+                )
             processed += 1
     return processed
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="SalonOS background job worker")
-    parser.add_argument("--queue", default="default", help="Queue name (default/default, exports, alerts, integrations)")
-    parser.add_argument("--worker-id", default=f"worker-{os.getpid()}", help="Worker identifier")
-    parser.add_argument("--batch-size", type=int, default=10, help="Jobs fetched per poll")
-    parser.add_argument("--poll-seconds", type=float, default=2.0, help="Poll interval when queue is empty")
-    parser.add_argument("--once", action="store_true", help="Process only one poll cycle and exit")
+    parser.add_argument(
+        "--queue",
+        default="default",
+        help="Queue name (default/default, exports, alerts, integrations)",
+    )
+    parser.add_argument(
+        "--worker-id", default=f"worker-{os.getpid()}", help="Worker identifier"
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=10, help="Jobs fetched per poll"
+    )
+    parser.add_argument(
+        "--poll-seconds",
+        type=float,
+        default=2.0,
+        help="Poll interval when queue is empty",
+    )
+    parser.add_argument(
+        "--once", action="store_true", help="Process only one poll cycle and exit"
+    )
     args = parser.parse_args()
 
     while True:
-        processed = process_once(queue=args.queue, worker_id=args.worker_id, batch_size=max(1, args.batch_size))
+        processed = process_once(
+            queue=args.queue,
+            worker_id=args.worker_id,
+            batch_size=max(1, args.batch_size),
+        )
         if args.once:
             break
         if processed == 0:

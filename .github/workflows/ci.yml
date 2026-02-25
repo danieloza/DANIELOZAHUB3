@@ -29,3 +29,41 @@ jobs:
           TELEGRAM_BOT_TOKEN: "dummy-token-for-ci"
         run: |
           pytest -q tests
+
+      - name: Verify OpenAPI contract freeze
+        run: |
+          python scripts/freeze_openapi.py
+          git diff --exit-code openapi_contract.json
+
+  demo_gate:
+    runs-on: windows-latest
+    needs: tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Create venv and install dependencies
+        shell: powershell
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install --upgrade pip
+          .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+      - name: Run demo flow gate
+        shell: powershell
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\demo_flow.ps1
+
+      - name: Verify demo report integrity gate
+        shell: powershell
+        run: |
+          $r = Get-Content .\logs\demo_flow_last.json | ConvertFrom-Json
+          if ($r.status -ne "ok") { throw "demo_flow status is not ok" }
+          if (-not $r.integrity_ok) { throw "integrity gate failed: integrity_ok=false" }
+          if ($r.integrity_issues_count -gt 0) { throw "integrity gate failed: issues detected" }

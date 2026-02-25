@@ -1,6 +1,6 @@
-import json
-import hmac
 import hashlib
+import hmac
+import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -46,7 +46,15 @@ DEFAULT_RESERVATION_STATUS_POLICY = {
 }
 
 DEFAULT_VISIT_STATUS_POLICY = {
-    "statuses": ["planned", "confirmed", "arrived", "in_service", "done", "no_show", "canceled"],
+    "statuses": [
+        "planned",
+        "confirmed",
+        "arrived",
+        "in_service",
+        "done",
+        "no_show",
+        "canceled",
+    ],
     "transitions": {
         "planned": ["confirmed", "arrived", "canceled", "no_show"],
         "confirmed": ["arrived", "canceled", "no_show"],
@@ -104,7 +112,9 @@ def _json_loads(raw: str | None, fallback: Any) -> Any:
 
 
 def _canonical_json(payload: Any) -> str:
-    return json.dumps(payload or {}, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    return json.dumps(
+        payload or {}, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+    )
 
 
 def _calendar_webhook_secrets(raw: str | None) -> list[str]:
@@ -258,7 +268,11 @@ def list_audit_logs(
     if since_minutes is not None:
         cutoff = utc_now_naive() - timedelta(minutes=max(1, int(since_minutes)))
         q = q.filter(AuditLog.created_at >= cutoff)
-    return q.order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).limit(max(1, min(int(limit), 1000))).all()
+    return (
+        q.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .limit(max(1, min(int(limit), 1000)))
+        .all()
+    )
 
 
 def _get_policy_default(policy_key: str) -> dict:
@@ -322,9 +336,13 @@ def upsert_tenant_policy(
     return row
 
 
-def get_policy_status_config(db: Session, tenant_id: int, policy_key: str) -> tuple[set[str], dict[str, set[str]]]:
+def get_policy_status_config(
+    db: Session, tenant_id: int, policy_key: str
+) -> tuple[set[str], dict[str, set[str]]]:
     raw = get_tenant_policy(db, tenant_id, policy_key)
-    statuses = {str(x).strip().lower() for x in raw.get("statuses", []) if str(x).strip()}
+    statuses = {
+        str(x).strip().lower() for x in raw.get("statuses", []) if str(x).strip()
+    }
     transitions_raw = raw.get("transitions", {})
     transitions: dict[str, set[str]] = {}
     if isinstance(transitions_raw, dict):
@@ -332,7 +350,9 @@ def get_policy_status_config(db: Session, tenant_id: int, policy_key: str) -> tu
             source_key = str(source).strip().lower()
             if not source_key:
                 continue
-            target_set = {str(x).strip().lower() for x in (targets or []) if str(x).strip()}
+            target_set = {
+                str(x).strip().lower() for x in (targets or []) if str(x).strip()
+            }
             transitions[source_key] = target_set
     return statuses, transitions
 
@@ -398,7 +418,11 @@ def list_background_jobs(
         q = q.filter(BackgroundJob.queue == queue.strip())
     if status:
         q = q.filter(BackgroundJob.status == status.strip())
-    return q.order_by(BackgroundJob.created_at.desc(), BackgroundJob.id.desc()).limit(max(1, min(limit, 1000))).all()
+    return (
+        q.order_by(BackgroundJob.created_at.desc(), BackgroundJob.id.desc())
+        .limit(max(1, min(limit, 1000)))
+        .all()
+    )
 
 
 def get_background_jobs_health(
@@ -422,7 +446,9 @@ def get_background_jobs_health(
     stale_running = [r for r in running if (r.updated_at or now) <= stale_cutoff]
 
     oldest_queued = min((r.run_after or now) for r in queued) if queued else None
-    oldest_queued_age_sec = int((now - oldest_queued).total_seconds()) if oldest_queued else 0
+    oldest_queued_age_sec = (
+        int((now - oldest_queued).total_seconds()) if oldest_queued else 0
+    )
 
     return {
         "tenant_id": (int(tenant_id) if tenant_id is not None else None),
@@ -503,7 +529,9 @@ def mark_background_job_success(
     job_id: int,
     result: dict | None = None,
 ) -> BackgroundJob | None:
-    row = db.execute(select(BackgroundJob).where(BackgroundJob.id == job_id)).scalar_one_or_none()
+    row = db.execute(
+        select(BackgroundJob).where(BackgroundJob.id == job_id)
+    ).scalar_one_or_none()
     if not row:
         return None
     row.status = "succeeded"
@@ -520,7 +548,9 @@ def mark_background_job_failure(
     job_id: int,
     error_message: str,
 ) -> BackgroundJob | None:
-    row = db.execute(select(BackgroundJob).where(BackgroundJob.id == job_id)).scalar_one_or_none()
+    row = db.execute(
+        select(BackgroundJob).where(BackgroundJob.id == job_id)
+    ).scalar_one_or_none()
     if not row:
         return None
     row.last_error = (error_message or "").strip()[:500] or "Unknown error"
@@ -530,14 +560,18 @@ def mark_background_job_failure(
         row.finished_at = utc_now_naive()
     else:
         row.status = "queued"
-        row.run_after = utc_now_naive() + timedelta(seconds=_retry_backoff_seconds(int(row.attempts or 1)))
+        row.run_after = utc_now_naive() + timedelta(
+            seconds=_retry_backoff_seconds(int(row.attempts or 1))
+        )
     db.commit()
     db.refresh(row)
     return row
 
 
 def retry_dead_letter_job(db: Session, job_id: int) -> BackgroundJob | None:
-    row = db.execute(select(BackgroundJob).where(BackgroundJob.id == job_id)).scalar_one_or_none()
+    row = db.execute(
+        select(BackgroundJob).where(BackgroundJob.id == job_id)
+    ).scalar_one_or_none()
     if not row:
         return None
     if row.status != "dead_letter":
@@ -584,7 +618,11 @@ def cleanup_background_jobs(
     statuses: list[str] | None = None,
     older_than_hours: int = 24 * 7,
 ) -> dict:
-    target_statuses = [str(s).strip().lower() for s in (statuses or ["succeeded", "dead_letter", "canceled"]) if str(s).strip()]
+    target_statuses = [
+        str(s).strip().lower()
+        for s in (statuses or ["succeeded", "dead_letter", "canceled"])
+        if str(s).strip()
+    ]
     if not target_statuses:
         target_statuses = ["succeeded", "dead_letter", "canceled"]
     cutoff = utc_now_naive() - timedelta(hours=max(1, int(older_than_hours)))
@@ -647,11 +685,15 @@ def upsert_calendar_connection(
     return row
 
 
-def list_calendar_connections(db: Session, tenant_id: int, provider: str | None = None) -> list[CalendarConnection]:
+def list_calendar_connections(
+    db: Session, tenant_id: int, provider: str | None = None
+) -> list[CalendarConnection]:
     q = db.query(CalendarConnection).filter(CalendarConnection.tenant_id == tenant_id)
     if provider:
         q = q.filter(CalendarConnection.provider == provider.strip().lower())
-    return q.order_by(CalendarConnection.provider.asc(), CalendarConnection.id.asc()).all()
+    return q.order_by(
+        CalendarConnection.provider.asc(), CalendarConnection.id.asc()
+    ).all()
 
 
 def enqueue_calendar_sync_event(
@@ -701,7 +743,11 @@ def list_calendar_sync_events(
     q = db.query(CalendarSyncEvent).filter(CalendarSyncEvent.tenant_id == tenant_id)
     if status:
         q = q.filter(CalendarSyncEvent.status == status.strip())
-    return q.order_by(CalendarSyncEvent.created_at.desc(), CalendarSyncEvent.id.desc()).limit(max(1, min(limit, 1000))).all()
+    return (
+        q.order_by(CalendarSyncEvent.created_at.desc(), CalendarSyncEvent.id.desc())
+        .limit(max(1, min(limit, 1000)))
+        .all()
+    )
 
 
 def replay_calendar_sync_event(
@@ -820,10 +866,16 @@ def ingest_calendar_webhook(
                 raise last_error
         if not signature_ok and signature_required:
             raise PermissionError("Missing or invalid calendar webhook signature")
-        if not signature_ok and not signature_required and not _secret_matches_any(incoming, expected_secrets):
+        if (
+            not signature_ok
+            and not signature_required
+            and not _secret_matches_any(incoming, expected_secrets)
+        ):
             raise PermissionError("Invalid calendar webhook secret")
 
-    external_event_id = str(payload.get("id") or payload.get("event_id") or "").strip() or None
+    external_event_id = (
+        str(payload.get("id") or payload.get("event_id") or "").strip() or None
+    )
     action = str(payload.get("action") or "webhook_update").strip() or "webhook_update"
     if external_event_id:
         existing = db.execute(
@@ -898,36 +950,51 @@ def run_retention_cleanup(db: Session, tenant_id: int) -> dict:
     events_cutoff = now - timedelta(days=int(policy.status_events_days))
     rl_cutoff = now - timedelta(hours=int(policy.rate_limit_events_hours))
 
-    deleted_notes = db.execute(
-        delete(ClientNote).where(
-            ClientNote.tenant_id == tenant_id,
-            ClientNote.created_at < notes_cutoff,
-        )
-    ).rowcount or 0
-    deleted_audit = db.execute(
-        delete(AuditLog).where(
-            AuditLog.tenant_id == tenant_id,
-            AuditLog.created_at < audit_cutoff,
-        )
-    ).rowcount or 0
-    deleted_res_status = db.execute(
-        delete(ReservationStatusEvent).where(
-            ReservationStatusEvent.tenant_id == tenant_id,
-            ReservationStatusEvent.created_at < events_cutoff,
-        )
-    ).rowcount or 0
-    deleted_visit_status = db.execute(
-        delete(VisitStatusEvent).where(
-            VisitStatusEvent.tenant_id == tenant_id,
-            VisitStatusEvent.created_at < events_cutoff,
-        )
-    ).rowcount or 0
-    deleted_rl = db.execute(
-        delete(ReservationRateLimitEvent).where(
-            ReservationRateLimitEvent.tenant_id == tenant_id,
-            ReservationRateLimitEvent.created_at < rl_cutoff,
-        )
-    ).rowcount or 0
+    deleted_notes = (
+        db.execute(
+            delete(ClientNote).where(
+                ClientNote.tenant_id == tenant_id,
+                ClientNote.created_at < notes_cutoff,
+            )
+        ).rowcount
+        or 0
+    )
+    deleted_audit = (
+        db.execute(
+            delete(AuditLog).where(
+                AuditLog.tenant_id == tenant_id,
+                AuditLog.created_at < audit_cutoff,
+            )
+        ).rowcount
+        or 0
+    )
+    deleted_res_status = (
+        db.execute(
+            delete(ReservationStatusEvent).where(
+                ReservationStatusEvent.tenant_id == tenant_id,
+                ReservationStatusEvent.created_at < events_cutoff,
+            )
+        ).rowcount
+        or 0
+    )
+    deleted_visit_status = (
+        db.execute(
+            delete(VisitStatusEvent).where(
+                VisitStatusEvent.tenant_id == tenant_id,
+                VisitStatusEvent.created_at < events_cutoff,
+            )
+        ).rowcount
+        or 0
+    )
+    deleted_rl = (
+        db.execute(
+            delete(ReservationRateLimitEvent).where(
+                ReservationRateLimitEvent.tenant_id == tenant_id,
+                ReservationRateLimitEvent.created_at < rl_cutoff,
+            )
+        ).rowcount
+        or 0
+    )
     db.commit()
     return {
         "tenant_id": int(tenant_id),
@@ -1015,14 +1082,20 @@ def anonymize_client_data(db: Session, tenant_id: int, client_id: int) -> Client
         )
         if old_phone:
             q = q.where(ReservationRequest.phone == old_phone)
-        db.execute(q.values(client_name=f"anon-client-{client.id}", phone=None, note="[redacted]"))
+        db.execute(
+            q.values(
+                client_name=f"anon-client-{client.id}", phone=None, note="[redacted]"
+            )
+        )
 
     db.commit()
     db.refresh(client)
     return client
 
 
-def delete_client_if_possible(db: Session, tenant_id: int, client_id: int) -> tuple[bool, str]:
+def delete_client_if_possible(
+    db: Session, tenant_id: int, client_id: int
+) -> tuple[bool, str]:
     client = db.execute(
         select(Client).where(Client.tenant_id == tenant_id, Client.id == client_id)
     ).scalar_one_or_none()
@@ -1030,7 +1103,9 @@ def delete_client_if_possible(db: Session, tenant_id: int, client_id: int) -> tu
         return False, "Client not found"
 
     visits_count = db.execute(
-        select(func.count(Visit.id)).where(Visit.tenant_id == tenant_id, Visit.client_id == client.id)
+        select(func.count(Visit.id)).where(
+            Visit.tenant_id == tenant_id, Visit.client_id == client.id
+        )
     ).scalar_one()
     if int(visits_count or 0) > 0:
         return False, "Client has visits; use anonymization instead of delete"
@@ -1059,7 +1134,11 @@ def upsert_slo_definition(
     normalized_metric = (metric_type or "").strip().lower()
     if not normalized_name:
         raise ValueError("name is required")
-    if normalized_metric not in {"latency_p95_ms", "error_rate_5xx", "integrity_issues"}:
+    if normalized_metric not in {
+        "latency_p95_ms",
+        "error_rate_5xx",
+        "integrity_issues",
+    }:
         raise ValueError("Unsupported metric_type")
 
     row = db.execute(
@@ -1126,7 +1205,9 @@ def evaluate_slos(db: Session, tenant_id: int) -> list[dict]:
         if not bool(row.enabled):
             continue
         metrics = get_ops_metrics_snapshot(window_minutes=int(row.window_minutes))
-        integrity = get_conversion_integrity_report(db=db, tenant_id=tenant_id, limit=100)
+        integrity = get_conversion_integrity_report(
+            db=db, tenant_id=tenant_id, limit=100
+        )
         requests_total = int(metrics.get("requests_total", 0))
         error_rate = (
             float(metrics.get("error_5xx_count", 0)) / float(requests_total)
@@ -1221,12 +1302,17 @@ def dispatch_alerts_to_routes(
     window_minutes: int = 15,
 ) -> dict:
     # local import avoids circular import with services->enterprise usage
-    from .services import get_conversion_integrity_report
     from .platform import get_outbox_health
+    from .services import get_conversion_integrity_report
 
     integrity = get_conversion_integrity_report(db=db, tenant_id=tenant_id, limit=100)
-    alerts = get_ops_alerts(window_minutes=window_minutes, integrity_issues_count=int(integrity.get("issues_count", 0)))
-    jobs_health = get_background_jobs_health(db=db, tenant_id=tenant_id, stale_running_minutes=15)
+    alerts = get_ops_alerts(
+        window_minutes=window_minutes,
+        integrity_issues_count=int(integrity.get("issues_count", 0)),
+    )
+    jobs_health = get_background_jobs_health(
+        db=db, tenant_id=tenant_id, stale_running_minutes=15
+    )
     jobs_alerts = build_background_job_alerts(jobs_health)
     if jobs_alerts:
         alerts = [a for a in alerts if str(a.get("code")) != "ops_ok"]
@@ -1244,9 +1330,13 @@ def dispatch_alerts_to_routes(
     routes = [r for r in list_alert_routes(db, tenant_id) if bool(r.enabled)]
     dispatched = 0
     for route in routes:
-        route_min = SEVERITY_ORDER.get((route.min_severity or "medium").strip().lower(), 30)
+        route_min = SEVERITY_ORDER.get(
+            (route.min_severity or "medium").strip().lower(), 30
+        )
         for alert in alerts:
-            alert_sev = SEVERITY_ORDER.get(str(alert.get("severity", "info")).lower(), 10)
+            alert_sev = SEVERITY_ORDER.get(
+                str(alert.get("severity", "info")).lower(), 10
+            )
             if alert_sev < route_min:
                 continue
             enqueue_background_job(
@@ -1254,7 +1344,10 @@ def dispatch_alerts_to_routes(
                 tenant_id=tenant_id,
                 queue="alerts",
                 job_type="alert_route_delivery",
-                payload={"route": {"channel": route.channel, "target": route.target}, "alert": alert},
+                payload={
+                    "route": {"channel": route.channel, "target": route.target},
+                    "alert": alert,
+                },
                 max_attempts=4,
             )
             dispatched += 1

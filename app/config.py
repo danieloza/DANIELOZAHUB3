@@ -45,7 +45,9 @@ class Settings:
     OPS_EVENTS_PERSIST_ENABLED = _get_bool("OPS_EVENTS_PERSIST_ENABLED", True)
     OPS_EVENTS_STREAM = os.getenv("OPS_EVENTS_STREAM", "salonos.http_events").strip()
     DEFAULT_ACTOR_ROLE = os.getenv("DEFAULT_ACTOR_ROLE", "reception").strip().lower()
-    CALENDAR_SYNC_DEFAULT_PROVIDER = os.getenv("CALENDAR_SYNC_DEFAULT_PROVIDER", "google").strip().lower()
+    CALENDAR_SYNC_DEFAULT_PROVIDER = (
+        os.getenv("CALENDAR_SYNC_DEFAULT_PROVIDER", "google").strip().lower()
+    )
 
     AUTH_SECRET_KEY = os.getenv("AUTH_SECRET_KEY", "change-this-in-prod").strip()
     AUTH_JWT_KEYS = os.getenv("AUTH_JWT_KEYS", "").strip()
@@ -69,7 +71,9 @@ class Settings:
     EVENT_BUS_STREAM = os.getenv("EVENT_BUS_STREAM", "salonos.events").strip()
 
     PAYMENT_PROVIDER_MODE = os.getenv("PAYMENT_PROVIDER_MODE", "mock").strip().lower()
-    PAYMENT_DEFAULT_CURRENCY = os.getenv("PAYMENT_DEFAULT_CURRENCY", "PLN").strip().upper()
+    PAYMENT_DEFAULT_CURRENCY = (
+        os.getenv("PAYMENT_DEFAULT_CURRENCY", "PLN").strip().upper()
+    )
 
     BACKUP_ENCRYPTION_KEY = os.getenv("BACKUP_ENCRYPTION_KEY", "").strip()
     OFFSITE_S3_BUCKET = os.getenv("OFFSITE_S3_BUCKET", "").strip()
@@ -79,16 +83,41 @@ class Settings:
     MAINTENANCE_MODE = _get_bool("MAINTENANCE_MODE", False)
     MAINTENANCE_READ_ONLY = _get_bool("MAINTENANCE_READ_ONLY", False)
     MAINTENANCE_RETRY_AFTER_SECONDS = _get_int("MAINTENANCE_RETRY_AFTER_SECONDS", 120)
+    SENTRY_DSN = os.getenv("SENTRY_DSN", "").strip() or None
+    APP_ENV = os.getenv("APP_ENV", "dev").strip().lower()
+    OWNER_TELEGRAM_ID = os.getenv("OWNER_TELEGRAM_ID", "1639287725").strip()
+
+    # Senior IT: Email Sync Settings
+    IMAP_HOST = os.getenv("IMAP_HOST", "imap.gmail.com")
+    IMAP_USER = os.getenv("IMAP_USER", "")
+    IMAP_PASS = os.getenv("IMAP_PASS", "") # Use App Password for Gmail!
+    IMAP_ENABLED = _get_bool("IMAP_ENABLED", False)
+
+    # Senior IT: Payment Settings (Stripe)
+    STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+    STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    DEPOSIT_AMOUNT_PLN = _get_int("DEPOSIT_AMOUNT_PLN", 20)
 
     SECURITY_HEADERS_ENABLED = _get_bool("SECURITY_HEADERS_ENABLED", True)
 
     AUTH_LOGIN_RL_PER_MIN = _get_int("AUTH_LOGIN_RL_PER_MIN", 8)
     AUTH_LOGIN_RL_PER_HOUR = _get_int("AUTH_LOGIN_RL_PER_HOUR", 40)
-    AUTH_LOGIN_RL_EVENT_RETENTION_HOURS = _get_int("AUTH_LOGIN_RL_EVENT_RETENTION_HOURS", 4)
+    AUTH_LOGIN_RL_EVENT_RETENTION_HOURS = _get_int(
+        "AUTH_LOGIN_RL_EVENT_RETENTION_HOURS", 4
+    )
 
-    CALENDAR_WEBHOOK_SIGNATURE_REQUIRED = _get_bool("CALENDAR_WEBHOOK_SIGNATURE_REQUIRED", False)
-    CALENDAR_WEBHOOK_SIGNATURE_TTL_SECONDS = _get_int("CALENDAR_WEBHOOK_SIGNATURE_TTL_SECONDS", 300)
+    CALENDAR_WEBHOOK_SIGNATURE_REQUIRED = _get_bool(
+        "CALENDAR_WEBHOOK_SIGNATURE_REQUIRED", False
+    )
+    CALENDAR_WEBHOOK_SIGNATURE_TTL_SECONDS = _get_int(
+        "CALENDAR_WEBHOOK_SIGNATURE_TTL_SECONDS", 300
+    )
     OUTBOX_MAX_RETRIES = _get_int("OUTBOX_MAX_RETRIES", 8)
+
+    # Senior IT: Danex API for Invoicing Sync
+    DANEX_API_URL = os.getenv("DANEX_API_URL", "http://127.0.0.1:8001").strip()
+    DANEX_API_EMAIL = os.getenv("DANEX_API_EMAIL", "bot@danex.pl").strip()
+    DANEX_API_PASSWORD = os.getenv("DANEX_API_PASSWORD", "").strip()
 
 
 settings = Settings()

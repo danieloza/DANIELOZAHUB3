@@ -1484,6 +1484,87 @@
         "title": "EmployeeCommissionRow",
         "type": "object"
       },
+      "EmployeeWeeklyScheduleDayOut": {
+        "properties": {
+          "end_hour": {
+            "title": "End Hour",
+            "type": "integer"
+          },
+          "is_day_off": {
+            "title": "Is Day Off",
+            "type": "boolean"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "start_hour": {
+            "title": "Start Hour",
+            "type": "integer"
+          },
+          "weekday": {
+            "title": "Weekday",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "weekday",
+          "is_day_off",
+          "source"
+        ],
+        "title": "EmployeeWeeklyScheduleDayOut",
+        "type": "object"
+      },
+      "EmployeeWeeklyScheduleDaySet": {
+        "properties": {
+          "end_hour": {
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "End Hour",
+            "type": "integer"
+          },
+          "is_day_off": {
+            "default": false,
+            "title": "Is Day Off",
+            "type": "boolean"
+          },
+          "start_hour": {
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Start Hour",
+            "type": "integer"
+          },
+          "weekday": {
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Weekday",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "weekday"
+        ],
+        "title": "EmployeeWeeklyScheduleDaySet",
+        "type": "object"
+      },
+      "EmployeeWeeklyScheduleSet": {
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/EmployeeWeeklyScheduleDaySet"
+            },
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Days",
+            "type": "array"
+          }
+        },
+        "required": [
+          "days"
+        ],
+        "title": "EmployeeWeeklyScheduleSet",
+        "type": "object"
+      },
       "FeatureFlagSetIn": {
         "properties": {
           "allowlist": {
@@ -2116,6 +2197,127 @@
         "title": "ReservationStatusUpdate",
         "type": "object"
       },
+      "ScheduleAuditOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_email": {
+            "title": "Actor Email",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "employee_id": {
+            "title": "Employee Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "payload_json": {
+            "title": "Payload Json",
+            "type": "string"
+          },
+          "related_id": {
+            "title": "Related Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "created_at"
+        ],
+        "title": "ScheduleAuditOut",
+        "type": "object"
+      },
+      "ScheduleNotificationOut": {
+        "properties": {
+          "channel": {
+            "title": "Channel",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "employee_id": {
+            "title": "Employee Id",
+            "type": "integer"
+          },
+          "employee_name": {
+            "title": "Employee Name",
+            "type": "string"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "last_error": {
+            "title": "Last Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "sent_at": {
+            "format": "date-time",
+            "title": "Sent At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "event_type",
+          "message",
+          "channel",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ScheduleNotificationOut",
+        "type": "object"
+      },
+      "ScheduleNotificationSetStatus": {
+        "properties": {
+          "last_error": {
+            "maxLength": 500,
+            "title": "Last Error",
+            "type": "string"
+          },
+          "status": {
+            "pattern": "^(pending|sent|failed)$",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ScheduleNotificationSetStatus",
+        "type": "object"
+      },
       "SloDefinitionOut": {
         "properties": {
           "created_at": {
@@ -2282,6 +2484,633 @@
           "score"
         ],
         "title": "SlotRecommendationOut",
+        "type": "object"
+      },
+      "TeamEmployeeCapabilityOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_min": {
+            "title": "Duration Min",
+            "type": "integer"
+          },
+          "employee_id": {
+            "title": "Employee Id",
+            "type": "integer"
+          },
+          "employee_name": {
+            "title": "Employee Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "price_override": {
+            "title": "Price Override",
+            "type": "number"
+          },
+          "service_name": {
+            "title": "Service Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "employee_id",
+          "employee_name",
+          "service_name",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TeamEmployeeCapabilityOut",
+        "type": "object"
+      },
+      "TeamEmployeeCapabilitySet": {
+        "properties": {
+          "duration_min": {
+            "maximum": 480.0,
+            "minimum": 5.0,
+            "title": "Duration Min",
+            "type": "integer"
+          },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "price_override": {
+            "minimum": 0.0,
+            "title": "Price Override",
+            "type": "number"
+          },
+          "service_name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Service Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service_name"
+        ],
+        "title": "TeamEmployeeCapabilitySet",
+        "type": "object"
+      },
+      "TeamEmployeeCreate": {
+        "properties": {
+          "commission_pct": {
+            "default": 0.0,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Commission Pct",
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "TeamEmployeeCreate",
+        "type": "object"
+      },
+      "TeamEmployeeOut": {
+        "properties": {
+          "commission_pct": {
+            "title": "Commission Pct",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "commission_pct",
+          "is_active"
+        ],
+        "title": "TeamEmployeeOut",
+        "type": "object"
+      },
+      "TeamEmployeeUpdate": {
+        "properties": {
+          "commission_pct": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Commission Pct",
+            "type": "number"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "title": "TeamEmployeeUpdate",
+        "type": "object"
+      },
+      "TeamLeaveCreate": {
+        "properties": {
+          "employee_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Employee Id",
+            "type": "integer"
+          },
+          "end_day": {
+            "format": "date",
+            "title": "End Day",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "title": "Reason",
+            "type": "string"
+          },
+          "start_day": {
+            "format": "date",
+            "title": "Start Day",
+            "type": "string"
+          }
+        },
+        "required": [
+          "employee_id",
+          "start_day",
+          "end_day"
+        ],
+        "title": "TeamLeaveCreate",
+        "type": "object"
+      },
+      "TeamLeaveDecision": {
+        "properties": {
+          "decision": {
+            "pattern": "^(approved|rejected|canceled)$",
+            "title": "Decision",
+            "type": "string"
+          },
+          "decision_note": {
+            "maxLength": 500,
+            "title": "Decision Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "TeamLeaveDecision",
+        "type": "object"
+      },
+      "TeamLeaveOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_at": {
+            "format": "date-time",
+            "title": "Decided At",
+            "type": "string"
+          },
+          "decided_by": {
+            "title": "Decided By",
+            "type": "string"
+          },
+          "decision_note": {
+            "title": "Decision Note",
+            "type": "string"
+          },
+          "employee_id": {
+            "title": "Employee Id",
+            "type": "integer"
+          },
+          "employee_name": {
+            "title": "Employee Name",
+            "type": "string"
+          },
+          "end_day": {
+            "format": "date",
+            "title": "End Day",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requested_by": {
+            "title": "Requested By",
+            "type": "string"
+          },
+          "start_day": {
+            "format": "date",
+            "title": "Start Day",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "employee_id",
+          "employee_name",
+          "start_day",
+          "end_day",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TeamLeaveOut",
+        "type": "object"
+      },
+      "TeamSwapCreate": {
+        "properties": {
+          "from_employee_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "From Employee Id",
+            "type": "integer"
+          },
+          "from_end_hour": {
+            "default": 18,
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "From End Hour",
+            "type": "integer"
+          },
+          "from_start_hour": {
+            "default": 9,
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "From Start Hour",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 500,
+            "title": "Reason",
+            "type": "string"
+          },
+          "shift_day": {
+            "format": "date",
+            "title": "Shift Day",
+            "type": "string"
+          },
+          "to_employee_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "To Employee Id",
+            "type": "integer"
+          },
+          "to_end_hour": {
+            "default": 18,
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "To End Hour",
+            "type": "integer"
+          },
+          "to_start_hour": {
+            "default": 9,
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "To Start Hour",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "shift_day",
+          "from_employee_id",
+          "to_employee_id"
+        ],
+        "title": "TeamSwapCreate",
+        "type": "object"
+      },
+      "TeamSwapDecision": {
+        "properties": {
+          "decision": {
+            "pattern": "^(approved|rejected|canceled)$",
+            "title": "Decision",
+            "type": "string"
+          },
+          "decision_note": {
+            "maxLength": 500,
+            "title": "Decision Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "TeamSwapDecision",
+        "type": "object"
+      },
+      "TeamSwapOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_at": {
+            "format": "date-time",
+            "title": "Decided At",
+            "type": "string"
+          },
+          "decided_by": {
+            "title": "Decided By",
+            "type": "string"
+          },
+          "decision_note": {
+            "title": "Decision Note",
+            "type": "string"
+          },
+          "from_employee_id": {
+            "title": "From Employee Id",
+            "type": "integer"
+          },
+          "from_employee_name": {
+            "title": "From Employee Name",
+            "type": "string"
+          },
+          "from_end_hour": {
+            "title": "From End Hour",
+            "type": "integer"
+          },
+          "from_start_hour": {
+            "title": "From Start Hour",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requested_by": {
+            "title": "Requested By",
+            "type": "string"
+          },
+          "shift_day": {
+            "format": "date",
+            "title": "Shift Day",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "to_employee_id": {
+            "title": "To Employee Id",
+            "type": "integer"
+          },
+          "to_employee_name": {
+            "title": "To Employee Name",
+            "type": "string"
+          },
+          "to_end_hour": {
+            "title": "To End Hour",
+            "type": "integer"
+          },
+          "to_start_hour": {
+            "title": "To Start Hour",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "shift_day",
+          "from_employee_id",
+          "from_employee_name",
+          "to_employee_id",
+          "to_employee_name",
+          "from_start_hour",
+          "from_end_hour",
+          "to_start_hour",
+          "to_end_hour",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TeamSwapOut",
+        "type": "object"
+      },
+      "TeamTimeClockDayRowOut": {
+        "properties": {
+          "employee_id": {
+            "title": "Employee Id",
+            "type": "integer"
+          },
+          "employee_name": {
+            "title": "Employee Name",
+            "type": "string"
+          },
+          "first_check_in": {
+            "format": "date-time",
+            "title": "First Check In",
+            "type": "string"
+          },
+          "last_check_out": {
+            "format": "date-time",
+            "title": "Last Check Out",
+            "type": "string"
+          },
+          "late_minutes": {
+            "title": "Late Minutes",
+            "type": "integer"
+          },
+          "overtime_minutes": {
+            "title": "Overtime Minutes",
+            "type": "integer"
+          },
+          "planned_end_hour": {
+            "title": "Planned End Hour",
+            "type": "integer"
+          },
+          "planned_start_hour": {
+            "title": "Planned Start Hour",
+            "type": "integer"
+          },
+          "worked_minutes": {
+            "title": "Worked Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "employee_id",
+          "employee_name",
+          "late_minutes",
+          "overtime_minutes",
+          "worked_minutes"
+        ],
+        "title": "TeamTimeClockDayRowOut",
+        "type": "object"
+      },
+      "TeamTimeClockIn": {
+        "properties": {
+          "employee_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Employee Id",
+            "type": "integer"
+          },
+          "event_dt": {
+            "format": "date-time",
+            "title": "Event Dt",
+            "type": "string"
+          },
+          "event_type": {
+            "pattern": "^(check_in|check_out)$",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 300,
+            "title": "Note",
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 80,
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "employee_id",
+          "event_type"
+        ],
+        "title": "TeamTimeClockIn",
+        "type": "object"
+      },
+      "TeamTimeClockOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "employee_id": {
+            "title": "Employee Id",
+            "type": "integer"
+          },
+          "employee_name": {
+            "title": "Employee Name",
+            "type": "string"
+          },
+          "event_dt": {
+            "format": "date-time",
+            "title": "Event Dt",
+            "type": "string"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "employee_id",
+          "employee_name",
+          "event_type",
+          "event_dt",
+          "created_at"
+        ],
+        "title": "TeamTimeClockOut",
+        "type": "object"
+      },
+      "TeamVisitReassignIn": {
+        "properties": {
+          "reason": {
+            "maxLength": 300,
+            "title": "Reason",
+            "type": "string"
+          },
+          "to_employee_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "To Employee Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "to_employee_id"
+        ],
+        "title": "TeamVisitReassignIn",
+        "type": "object"
+      },
+      "TeamWeeklyApplyRangeIn": {
+        "properties": {
+          "end_day": {
+            "format": "date",
+            "title": "End Day",
+            "type": "string"
+          },
+          "start_day": {
+            "format": "date",
+            "title": "Start Day",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_day",
+          "end_day"
+        ],
+        "title": "TeamWeeklyApplyRangeIn",
         "type": "object"
       },
       "TenantPolicyOut": {
@@ -7126,6 +7955,1592 @@
           }
         },
         "summary": "Get Day Summary"
+      }
+    },
+    "/api/team/employees": {
+      "get": {
+        "operationId": "list_team_employees_endpoint_api_team_employees_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include_inactive",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Inactive",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TeamEmployeeOut"
+                  },
+                  "title": "Response List Team Employees Endpoint Api Team Employees Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Team Employees Endpoint"
+      },
+      "post": {
+        "operationId": "create_team_employee_endpoint_api_team_employees_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamEmployeeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamEmployeeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Team Employee Endpoint"
+      }
+    },
+    "/api/team/employees/{employee_id}": {
+      "delete": {
+        "operationId": "archive_team_employee_endpoint_api_team_employees__employee_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamEmployeeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Archive Team Employee Endpoint"
+      },
+      "patch": {
+        "operationId": "patch_team_employee_endpoint_api_team_employees__employee_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamEmployeeUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamEmployeeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Team Employee Endpoint"
+      }
+    },
+    "/api/team/employees/{employee_id}/capabilities": {
+      "get": {
+        "operationId": "list_employee_capabilities_endpoint_api_team_employees__employee_id__capabilities_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "active_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Active Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TeamEmployeeCapabilityOut"
+                  },
+                  "title": "Response List Employee Capabilities Endpoint Api Team Employees  Employee Id  Capabilities Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Employee Capabilities Endpoint"
+      },
+      "post": {
+        "operationId": "upsert_employee_capability_endpoint_api_team_employees__employee_id__capabilities_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamEmployeeCapabilitySet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamEmployeeCapabilityOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upsert Employee Capability Endpoint"
+      }
+    },
+    "/api/team/employees/{employee_id}/weekly-schedule": {
+      "get": {
+        "operationId": "get_employee_weekly_schedule_endpoint_api_team_employees__employee_id__weekly_schedule_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeWeeklyScheduleDayOut"
+                  },
+                  "title": "Response Get Employee Weekly Schedule Endpoint Api Team Employees  Employee Id  Weekly Schedule Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Employee Weekly Schedule Endpoint"
+      },
+      "put": {
+        "operationId": "set_employee_weekly_schedule_endpoint_api_team_employees__employee_id__weekly_schedule_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeWeeklyScheduleSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeWeeklyScheduleDayOut"
+                  },
+                  "title": "Response Set Employee Weekly Schedule Endpoint Api Team Employees  Employee Id  Weekly Schedule Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Employee Weekly Schedule Endpoint"
+      }
+    },
+    "/api/team/employees/{employee_id}/weekly-schedule/apply-range": {
+      "post": {
+        "operationId": "apply_employee_weekly_schedule_to_range_endpoint_api_team_employees__employee_id__weekly_schedule_apply_range_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamWeeklyApplyRangeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Employee Weekly Schedule To Range Endpoint"
+      }
+    },
+    "/api/team/leaves": {
+      "get": {
+        "operationId": "list_team_leaves_endpoint_api_team_leaves_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "employee_id",
+            "required": false,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_day",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "title": "Start Day",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_day",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "title": "End Day",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TeamLeaveOut"
+                  },
+                  "title": "Response List Team Leaves Endpoint Api Team Leaves Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Team Leaves Endpoint"
+      },
+      "post": {
+        "operationId": "create_team_leave_endpoint_api_team_leaves_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamLeaveCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamLeaveOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Team Leave Endpoint"
+      }
+    },
+    "/api/team/leaves/{leave_id}/decision": {
+      "patch": {
+        "operationId": "decide_team_leave_endpoint_api_team_leaves__leave_id__decision_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "leave_id",
+            "required": true,
+            "schema": {
+              "title": "Leave Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamLeaveDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamLeaveOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide Team Leave Endpoint"
+      }
+    },
+    "/api/team/notifications": {
+      "get": {
+        "operationId": "list_team_notifications_endpoint_api_team_notifications_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 1000.0,
+              "minimum": 1.0,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleNotificationOut"
+                  },
+                  "title": "Response List Team Notifications Endpoint Api Team Notifications Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Team Notifications Endpoint"
+      }
+    },
+    "/api/team/notifications/{notification_id}/status": {
+      "patch": {
+        "operationId": "set_team_notification_status_endpoint_api_team_notifications__notification_id__status_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "title": "Notification Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleNotificationSetStatus"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleNotificationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Team Notification Status Endpoint"
+      }
+    },
+    "/api/team/schedule-audit": {
+      "get": {
+        "operationId": "list_team_schedule_audit_endpoint_api_team_schedule_audit_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 1000.0,
+              "minimum": 1.0,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "title": "Action",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "employee_id",
+            "required": false,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleAuditOut"
+                  },
+                  "title": "Response List Team Schedule Audit Endpoint Api Team Schedule Audit Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Team Schedule Audit Endpoint"
+      }
+    },
+    "/api/team/swaps": {
+      "get": {
+        "operationId": "list_team_swaps_endpoint_api_team_swaps_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_day",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "title": "Start Day",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_day",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "title": "End Day",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TeamSwapOut"
+                  },
+                  "title": "Response List Team Swaps Endpoint Api Team Swaps Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Team Swaps Endpoint"
+      },
+      "post": {
+        "operationId": "create_team_swap_endpoint_api_team_swaps_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamSwapCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSwapOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Team Swap Endpoint"
+      }
+    },
+    "/api/team/swaps/{swap_id}/decision": {
+      "patch": {
+        "operationId": "decide_team_swap_endpoint_api_team_swaps__swap_id__decision_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "swap_id",
+            "required": true,
+            "schema": {
+              "title": "Swap Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamSwapDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamSwapOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide Team Swap Endpoint"
+      }
+    },
+    "/api/team/time-clock/day-report": {
+      "get": {
+        "operationId": "list_team_time_clock_day_report_endpoint_api_team_time_clock_day_report_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "day",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Day",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TeamTimeClockDayRowOut"
+                  },
+                  "title": "Response List Team Time Clock Day Report Endpoint Api Team Time Clock Day Report Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Team Time Clock Day Report Endpoint"
+      }
+    },
+    "/api/team/time-clock/events": {
+      "post": {
+        "operationId": "create_time_clock_event_endpoint_api_team_time_clock_events_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamTimeClockIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamTimeClockOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Time Clock Event Endpoint"
+      }
+    },
+    "/api/team/visits/{visit_id}/reassign": {
+      "post": {
+        "operationId": "reassign_visit_endpoint_api_team_visits__visit_id__reassign_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "visit_id",
+            "required": true,
+            "schema": {
+              "title": "Visit Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamVisitReassignIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reassign Visit Endpoint"
       }
     },
     "/api/visits": {

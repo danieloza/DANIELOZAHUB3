@@ -2,10 +2,10 @@ import argparse
 import io
 import json
 import sys
+import tarfile
 from pathlib import Path
 
 from cryptography.fernet import Fernet
-import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -15,7 +15,9 @@ from app.config import settings  # noqa: E402
 
 
 def _latest_encrypted_backup(backups_dir: Path) -> Path:
-    candidates = sorted(backups_dir.glob("*.enc"), key=lambda p: p.stat().st_mtime, reverse=True)
+    candidates = sorted(
+        backups_dir.glob("*.enc"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
     if not candidates:
         raise RuntimeError(f"No encrypted backup files found in: {backups_dir}")
     return candidates[0]
@@ -24,7 +26,9 @@ def _latest_encrypted_backup(backups_dir: Path) -> Path:
 def _decrypt_backup(backup_file: Path) -> bytes:
     key = (settings.BACKUP_ENCRYPTION_KEY or "").strip()
     if not key:
-        raise RuntimeError("BACKUP_ENCRYPTION_KEY is required to verify encrypted backup")
+        raise RuntimeError(
+            "BACKUP_ENCRYPTION_KEY is required to verify encrypted backup"
+        )
     fernet = Fernet(key.encode("utf-8"))
     try:
         return fernet.decrypt(backup_file.read_bytes())
@@ -66,14 +70,26 @@ def _load_metadata(metadata_file: Path | None, backup_file: Path) -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Verify encrypted SalonOS backup integrity and payload readability")
-    parser.add_argument("--backup-file", default="", help="Path to .enc backup file; defaults to latest in backups dir")
+    parser = argparse.ArgumentParser(
+        description="Verify encrypted SalonOS backup integrity and payload readability"
+    )
+    parser.add_argument(
+        "--backup-file",
+        default="",
+        help="Path to .enc backup file; defaults to latest in backups dir",
+    )
     parser.add_argument("--backups-dir", default=str(ROOT / "backups" / "pitr"))
-    parser.add_argument("--metadata-file", default="", help="Optional explicit metadata file path")
+    parser.add_argument(
+        "--metadata-file", default="", help="Optional explicit metadata file path"
+    )
     args = parser.parse_args()
 
     backups_dir = Path(args.backups_dir).resolve()
-    backup_file = Path(args.backup_file).resolve() if args.backup_file else _latest_encrypted_backup(backups_dir)
+    backup_file = (
+        Path(args.backup_file).resolve()
+        if args.backup_file
+        else _latest_encrypted_backup(backups_dir)
+    )
     if not backup_file.exists():
         raise RuntimeError(f"Backup file not found: {backup_file}")
 

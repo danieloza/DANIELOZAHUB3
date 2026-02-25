@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.api import get_db, public_router, router
+from app.config import settings
 from app.db import Base
 
 
@@ -50,7 +51,9 @@ def test_create_and_list_visit(tmp_path):
     assert body["id"] > 0
     assert body["employee"] == "Magda"
 
-    listed = client.get("/api/visits", params={"day": "2026-02-17", "employee_name": "Magda"})
+    listed = client.get(
+        "/api/visits", params={"day": "2026-02-17", "employee_name": "Magda"}
+    )
     assert listed.status_code == 200
     rows = listed.json()
     assert len(rows) == 1
@@ -72,7 +75,9 @@ def test_employee_filter_returns_only_matching_rows(tmp_path):
         res = client.post("/api/visits", json=payload)
         assert res.status_code == 200
 
-    listed = client.get("/api/visits", params={"day": "2026-02-17", "employee_name": "Kamila"})
+    listed = client.get(
+        "/api/visits", params={"day": "2026-02-17", "employee_name": "Kamila"}
+    )
     assert listed.status_code == 200
     rows = listed.json()
     assert len(rows) == 1
@@ -94,15 +99,21 @@ def test_patch_visit_datetime_to_another_day(tmp_path):
     )
     visit_id = created.json()["id"]
 
-    patched = client.patch(f"/api/visits/{visit_id}", json={"dt": "2026-02-18T13:35:00"})
+    patched = client.patch(
+        f"/api/visits/{visit_id}", json={"dt": "2026-02-18T13:35:00"}
+    )
     assert patched.status_code == 200
     assert patched.json()["dt"].startswith("2026-02-18T13:35:00")
 
-    old_day = client.get("/api/visits", params={"day": "2026-02-17", "employee_name": "Magda"})
+    old_day = client.get(
+        "/api/visits", params={"day": "2026-02-17", "employee_name": "Magda"}
+    )
     assert old_day.status_code == 200
     assert old_day.json() == []
 
-    new_day = client.get("/api/visits", params={"day": "2026-02-18", "employee_name": "Magda"})
+    new_day = client.get(
+        "/api/visits", params={"day": "2026-02-18", "employee_name": "Magda"}
+    )
     assert new_day.status_code == 200
     assert len(new_day.json()) == 1
 
@@ -140,21 +151,45 @@ def test_tenant_isolation_by_header(tmp_path):
         "price": 180,
     }
 
-    created_a = client.post("/api/visits", json=payload, headers={"X-Tenant-Slug": "tenant-a"})
+    created_a = client.post(
+        "/api/visits",
+        json=payload,
+        headers={
+            "X-Tenant-Slug": "tenant-a",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
     assert created_a.status_code == 200
 
-    created_b = client.post("/api/visits", json=payload, headers={"X-Tenant-Slug": "tenant-b"})
+    created_b = client.post(
+        "/api/visits",
+        json=payload,
+        headers={
+            "X-Tenant-Slug": "tenant-b",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
     assert created_b.status_code == 200
 
     listed_a = client.get(
         "/api/visits",
         params={"day": "2026-02-17", "employee_name": "Magda"},
-        headers={"X-Tenant-Slug": "tenant-a"},
+        headers={
+            "X-Tenant-Slug": "tenant-a",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     listed_b = client.get(
         "/api/visits",
         params={"day": "2026-02-17", "employee_name": "Magda"},
-        headers={"X-Tenant-Slug": "tenant-b"},
+        headers={
+            "X-Tenant-Slug": "tenant-b",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
 
     assert listed_a.status_code == 200
@@ -176,14 +211,18 @@ def test_public_reservation_endpoint(tmp_path):
             "service_name": "Strzyzenie",
             "price": 100,
         },
-        headers={"X-Tenant-Slug": "public-tenant"},
+        headers={
+            "X-Tenant-Slug": "public-tenant",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert seed.status_code == 200
 
     reservation = client.post(
         "/public/public-tenant/reservations",
         json={
-            "requested_dt": "2026-02-20T13:00:00",
+            "requested_dt": "2030-02-20T13:00:00",
             "client_name": "Klient WWW",
             "service_name": "Koloryzacja",
             "phone": "+48123123123",
@@ -199,13 +238,12 @@ def test_public_reservation_endpoint(tmp_path):
     missing = client.post(
         "/public/does-not-exist/reservations",
         json={
-            "requested_dt": "2026-02-20T13:00:00",
+            "requested_dt": "2030-02-20T13:00:00",
             "client_name": "XX",
             "service_name": "YY",
         },
     )
     assert missing.status_code == 404
-
 
 
 def test_list_reservations_per_tenant(tmp_path):
@@ -220,7 +258,11 @@ def test_list_reservations_per_tenant(tmp_path):
             "service_name": "Strzyzenie",
             "price": 100,
         },
-        headers={"X-Tenant-Slug": "tenant-a"},
+        headers={
+            "X-Tenant-Slug": "tenant-a",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert seed_a.status_code == 200
 
@@ -233,14 +275,18 @@ def test_list_reservations_per_tenant(tmp_path):
             "service_name": "Strzyzenie",
             "price": 100,
         },
-        headers={"X-Tenant-Slug": "tenant-b"},
+        headers={
+            "X-Tenant-Slug": "tenant-b",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert seed_b.status_code == 200
 
     r1 = client.post(
         "/public/tenant-a/reservations",
         json={
-            "requested_dt": "2026-02-20T10:00:00",
+            "requested_dt": "2030-02-20T10:00:00",
             "client_name": "A1",
             "service_name": "Koloryzacja",
         },
@@ -248,7 +294,7 @@ def test_list_reservations_per_tenant(tmp_path):
     r2 = client.post(
         "/public/tenant-a/reservations",
         json={
-            "requested_dt": "2026-02-20T11:00:00",
+            "requested_dt": "2030-02-20T11:00:00",
             "client_name": "A2",
             "service_name": "Strzyzenie",
         },
@@ -256,7 +302,7 @@ def test_list_reservations_per_tenant(tmp_path):
     r3 = client.post(
         "/public/tenant-b/reservations",
         json={
-            "requested_dt": "2026-02-20T12:00:00",
+            "requested_dt": "2030-02-20T12:00:00",
             "client_name": "B1",
             "service_name": "Modelowanie",
         },
@@ -265,13 +311,27 @@ def test_list_reservations_per_tenant(tmp_path):
     assert r2.status_code == 200
     assert r3.status_code == 200
 
-    listed_a = client.get("/api/reservations", headers={"X-Tenant-Slug": "tenant-a"})
+    listed_a = client.get(
+        "/api/reservations",
+        headers={
+            "X-Tenant-Slug": "tenant-a",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
     assert listed_a.status_code == 200
     body_a = listed_a.json()
     assert len(body_a) == 2
     assert all(x["tenant_slug"] == "tenant-a" for x in body_a)
 
-    listed_b = client.get("/api/reservations", headers={"X-Tenant-Slug": "tenant-b"})
+    listed_b = client.get(
+        "/api/reservations",
+        headers={
+            "X-Tenant-Slug": "tenant-b",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
     assert listed_b.status_code == 200
     body_b = listed_b.json()
     assert len(body_b) == 1
@@ -280,10 +340,15 @@ def test_list_reservations_per_tenant(tmp_path):
     listed_limit = client.get(
         "/api/reservations",
         params={"limit": 1},
-        headers={"X-Tenant-Slug": "tenant-a"},
+        headers={
+            "X-Tenant-Slug": "tenant-a",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert listed_limit.status_code == 200
     assert len(listed_limit.json()) == 1
+
 
 def test_reservation_status_workflow(tmp_path):
     client = make_client(tmp_path)
@@ -297,14 +362,18 @@ def test_reservation_status_workflow(tmp_path):
             "service_name": "Strzyzenie",
             "price": 100,
         },
-        headers={"X-Tenant-Slug": "tenant-status"},
+        headers={
+            "X-Tenant-Slug": "tenant-status",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert seed.status_code == 200
 
     reservation = client.post(
         "/public/tenant-status/reservations",
         json={
-            "requested_dt": "2026-02-20T13:00:00",
+            "requested_dt": "2030-02-20T13:00:00",
             "client_name": "Klient",
             "service_name": "Koloryzacja",
         },
@@ -315,7 +384,11 @@ def test_reservation_status_workflow(tmp_path):
     contacted = client.patch(
         f"/api/reservations/{reservation_id}/status",
         json={"status": "contacted"},
-        headers={"X-Tenant-Slug": "tenant-status"},
+        headers={
+            "X-Tenant-Slug": "tenant-status",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert contacted.status_code == 200
     assert contacted.json()["status"] == "contacted"
@@ -323,7 +396,11 @@ def test_reservation_status_workflow(tmp_path):
     confirmed = client.patch(
         f"/api/reservations/{reservation_id}/status",
         json={"status": "confirmed"},
-        headers={"X-Tenant-Slug": "tenant-status"},
+        headers={
+            "X-Tenant-Slug": "tenant-status",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert confirmed.status_code == 200
     assert confirmed.json()["status"] == "confirmed"
@@ -341,14 +418,18 @@ def test_reservation_status_invalid_transition(tmp_path):
             "service_name": "Strzyzenie",
             "price": 100,
         },
-        headers={"X-Tenant-Slug": "tenant-invalid"},
+        headers={
+            "X-Tenant-Slug": "tenant-invalid",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert seed.status_code == 200
 
     reservation = client.post(
         "/public/tenant-invalid/reservations",
         json={
-            "requested_dt": "2026-02-20T13:00:00",
+            "requested_dt": "2030-02-20T13:00:00",
             "client_name": "Klient",
             "service_name": "Koloryzacja",
         },
@@ -358,7 +439,11 @@ def test_reservation_status_invalid_transition(tmp_path):
     invalid = client.patch(
         f"/api/reservations/{reservation_id}/status",
         json={"status": "confirmed"},
-        headers={"X-Tenant-Slug": "tenant-invalid"},
+        headers={
+            "X-Tenant-Slug": "tenant-invalid",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert invalid.status_code == 400
 
@@ -375,14 +460,18 @@ def test_convert_reservation_to_visit(tmp_path):
             "service_name": "Strzyzenie",
             "price": 100,
         },
-        headers={"X-Tenant-Slug": "tenant-convert"},
+        headers={
+            "X-Tenant-Slug": "tenant-convert",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert seed.status_code == 200
 
     reservation = client.post(
         "/public/tenant-convert/reservations",
         json={
-            "requested_dt": "2026-02-20T13:00:00",
+            "requested_dt": "2030-02-20T13:00:00",
             "client_name": "Klient WWW",
             "service_name": "Koloryzacja",
         },
@@ -395,19 +484,29 @@ def test_convert_reservation_to_visit(tmp_path):
             "employee_name": "Magda",
             "price": 280,
         },
-        headers={"X-Tenant-Slug": "tenant-convert"},
+        headers={
+            "X-Tenant-Slug": "tenant-convert",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert converted.status_code == 200
     body = converted.json()
     assert body["employee"] == "Magda"
     assert body["client"] == "Klient WWW"
+    assert body["source_reservation_id"] == reservation_id
 
     listed = client.get(
         "/api/reservations",
-        headers={"X-Tenant-Slug": "tenant-convert"},
+        headers={
+            "X-Tenant-Slug": "tenant-convert",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert listed.status_code == 200
     assert listed.json()[0]["status"] == "confirmed"
+
 
 def test_convert_reservation_is_idempotent(tmp_path):
     client = make_client(tmp_path)
@@ -421,14 +520,18 @@ def test_convert_reservation_is_idempotent(tmp_path):
             "service_name": "Strzyzenie",
             "price": 100,
         },
-        headers={"X-Tenant-Slug": "tenant-idempotent"},
+        headers={
+            "X-Tenant-Slug": "tenant-idempotent",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert seed.status_code == 200
 
     reservation = client.post(
         "/public/tenant-idempotent/reservations",
         json={
-            "requested_dt": "2026-02-20T13:00:00",
+            "requested_dt": "2030-02-20T13:00:00",
             "client_name": "Klient WWW",
             "service_name": "Koloryzacja",
         },
@@ -438,17 +541,39 @@ def test_convert_reservation_is_idempotent(tmp_path):
     first = client.post(
         f"/api/reservations/{reservation_id}/convert",
         json={"employee_name": "Magda", "price": 280},
-        headers={"X-Tenant-Slug": "tenant-idempotent"},
+        headers={
+            "X-Tenant-Slug": "tenant-idempotent",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     second = client.post(
         f"/api/reservations/{reservation_id}/convert",
         json={"employee_name": "Magda", "price": 280},
-        headers={"X-Tenant-Slug": "tenant-idempotent"},
+        headers={
+            "X-Tenant-Slug": "tenant-idempotent",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
 
     assert first.status_code == 200
     assert second.status_code == 200
     assert first.json()["id"] == second.json()["id"]
+    assert first.json()["source_reservation_id"] == reservation_id
+    assert second.json()["source_reservation_id"] == reservation_id
+
+    visits = client.get(
+        "/api/visits",
+        params={"day": "2030-02-20", "employee_name": "Magda"},
+        headers={
+            "X-Tenant-Slug": "tenant-idempotent",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
+    assert visits.status_code == 200
+    assert len(visits.json()) == 1
 
 
 def test_reservation_history_and_metrics(tmp_path):
@@ -463,14 +588,18 @@ def test_reservation_history_and_metrics(tmp_path):
             "service_name": "Strzyzenie",
             "price": 100,
         },
-        headers={"X-Tenant-Slug": "tenant-observability"},
+        headers={
+            "X-Tenant-Slug": "tenant-observability",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert seed.status_code == 200
 
     reservation = client.post(
         "/public/tenant-observability/reservations",
         json={
-            "requested_dt": "2026-02-20T13:00:00",
+            "requested_dt": "2030-02-20T13:00:00",
             "client_name": "Klient",
             "service_name": "Koloryzacja",
         },
@@ -480,20 +609,30 @@ def test_reservation_history_and_metrics(tmp_path):
     contacted = client.patch(
         f"/api/reservations/{reservation_id}/status",
         json={"status": "contacted"},
-        headers={"X-Tenant-Slug": "tenant-observability", "X-Actor-Email": "admin@danex.pl"},
+        headers={
+            "X-Tenant-Slug": "tenant-observability",
+            "X-Actor-Email": "admin@danex.pl",
+        },
     )
     assert contacted.status_code == 200
 
     converted = client.post(
         f"/api/reservations/{reservation_id}/convert",
         json={"employee_name": "Magda", "price": 210},
-        headers={"X-Tenant-Slug": "tenant-observability", "X-Actor-Email": "admin@danex.pl"},
+        headers={
+            "X-Tenant-Slug": "tenant-observability",
+            "X-Actor-Email": "admin@danex.pl",
+        },
     )
     assert converted.status_code == 200
 
     history = client.get(
         f"/api/reservations/{reservation_id}/history",
-        headers={"X-Tenant-Slug": "tenant-observability"},
+        headers={
+            "X-Tenant-Slug": "tenant-observability",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert history.status_code == 200
     body = history.json()
@@ -504,13 +643,180 @@ def test_reservation_history_and_metrics(tmp_path):
 
     metrics = client.get(
         "/api/reservations/metrics",
-        headers={"X-Tenant-Slug": "tenant-observability"},
+        headers={
+            "X-Tenant-Slug": "tenant-observability",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert metrics.status_code == 200
     m = metrics.json()
     assert m["total"] == 1
     assert m["converted"] == 1
     assert m["conversion_rate"] == 1.0
+
+
+def test_conversion_integrity_report_detects_missing_visit(tmp_path):
+    client = make_client(tmp_path)
+
+    seed = client.post(
+        "/api/visits",
+        json={
+            "dt": "2026-02-17T08:30:00",
+            "client_name": "Seeder",
+            "employee_name": "Magda",
+            "service_name": "Strzyzenie",
+            "price": 100,
+        },
+        headers={
+            "X-Tenant-Slug": "tenant-integrity",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
+    assert seed.status_code == 200
+
+    reservation = client.post(
+        "/public/tenant-integrity/reservations",
+        json={
+            "requested_dt": "2030-02-20T13:00:00",
+            "client_name": "Klient",
+            "service_name": "Koloryzacja",
+        },
+    )
+    assert reservation.status_code == 200
+    reservation_id = reservation.json()["id"]
+
+    converted = client.post(
+        f"/api/reservations/{reservation_id}/convert",
+        json={"employee_name": "Magda", "price": 210},
+        headers={
+            "X-Tenant-Slug": "tenant-integrity",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
+    assert converted.status_code == 200
+    visit_id = converted.json()["id"]
+
+    report_ok = client.get(
+        "/api/integrity/conversions",
+        headers={
+            "X-Tenant-Slug": "tenant-integrity",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
+    assert report_ok.status_code == 200
+    body_ok = report_ok.json()
+    assert body_ok["ok"] is True
+    assert body_ok["issues_count"] == 0
+
+    deleted = client.delete(
+        f"/api/visits/{visit_id}",
+        headers={
+            "X-Tenant-Slug": "tenant-integrity",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
+    assert deleted.status_code == 204
+
+    report_bad = client.get(
+        "/api/integrity/conversions",
+        headers={
+            "X-Tenant-Slug": "tenant-integrity",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
+    assert report_bad.status_code == 200
+    body_bad = report_bad.json()
+    assert body_bad["ok"] is False
+    assert body_bad["issues_count"] >= 1
+    assert body_bad["by_type"]["reservation_points_missing_visit"] >= 1
+    assert any(
+        i["type"] == "reservation_points_missing_visit" for i in body_bad["issues"]
+    )
+
+
+def test_public_reservation_rate_limit_by_ip(tmp_path):
+    client = make_client(tmp_path)
+
+    seed = client.post(
+        "/api/visits",
+        json={
+            "dt": "2026-02-17T08:30:00",
+            "client_name": "Seeder",
+            "employee_name": "Magda",
+            "service_name": "Strzyzenie",
+            "price": 100,
+        },
+        headers={
+            "X-Tenant-Slug": "tenant-rate-limit",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
+    )
+    assert seed.status_code == 200
+
+    old_ip_min = settings.PUBLIC_RL_IP_PER_MIN
+    old_ip_hour = settings.PUBLIC_RL_IP_PER_HOUR
+    try:
+        settings.PUBLIC_RL_IP_PER_MIN = 1
+        settings.PUBLIC_RL_IP_PER_HOUR = 100
+        payload = {
+            "requested_dt": "2030-02-20T13:00:00",
+            "client_name": "Klient",
+            "service_name": "Koloryzacja",
+        }
+        first = client.post("/public/tenant-rate-limit/reservations", json=payload)
+        second = client.post("/public/tenant-rate-limit/reservations", json=payload)
+        assert first.status_code == 200
+        assert second.status_code == 429
+    finally:
+        settings.PUBLIC_RL_IP_PER_MIN = old_ip_min
+        settings.PUBLIC_RL_IP_PER_HOUR = old_ip_hour
+
+
+def test_ops_endpoints_require_admin_api_key_when_configured(tmp_path):
+    client = make_client(tmp_path)
+    old_key = settings.ADMIN_API_KEY
+    try:
+        settings.ADMIN_API_KEY = "secret-key"
+
+        no_key_integrity = client.get(
+            "/api/integrity/conversions",
+            headers={
+                "X-Tenant-Slug": "tenant-sec",
+                "X-Actor-Email": "tests@salonos.local",
+                "X-Actor-Role": "manager",
+            },
+        )
+        assert no_key_integrity.status_code == 403
+
+        with_key_integrity = client.get(
+            "/api/integrity/conversions",
+            headers={"X-Tenant-Slug": "tenant-sec", "X-Admin-Api-Key": "secret-key"},
+        )
+        assert with_key_integrity.status_code == 200
+
+        no_key_metrics = client.get("/api/ops/metrics")
+        assert no_key_metrics.status_code == 403
+
+        with_key_metrics = client.get(
+            "/api/ops/metrics", headers={"X-Admin-Api-Key": "secret-key"}
+        )
+        assert with_key_metrics.status_code == 200
+
+        with_key_alerts = client.get(
+            "/api/ops/alerts",
+            headers={"X-Tenant-Slug": "tenant-sec", "X-Admin-Api-Key": "secret-key"},
+        )
+        assert with_key_alerts.status_code == 200
+        assert isinstance(with_key_alerts.json(), list)
+    finally:
+        settings.ADMIN_API_KEY = old_key
 
 
 def test_public_reservation_idempotency_key(tmp_path):
@@ -525,12 +831,16 @@ def test_public_reservation_idempotency_key(tmp_path):
             "service_name": "Strzyzenie",
             "price": 100,
         },
-        headers={"X-Tenant-Slug": "tenant-idem-key"},
+        headers={
+            "X-Tenant-Slug": "tenant-idem-key",
+            "X-Actor-Email": "tests@salonos.local",
+            "X-Actor-Role": "manager",
+        },
     )
     assert seed.status_code == 200
 
     payload = {
-        "requested_dt": "2026-02-20T13:00:00",
+        "requested_dt": "2030-02-20T13:00:00",
         "client_name": "Klient WWW",
         "service_name": "Koloryzacja",
     }

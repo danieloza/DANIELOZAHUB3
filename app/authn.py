@@ -48,7 +48,9 @@ def validate_password_policy(password: str) -> None:
         raise ValueError("password must contain at least one lowercase letter")
     if bool(settings.AUTH_PASSWORD_REQUIRE_DIGIT) and not re.search(r"[0-9]", raw):
         raise ValueError("password must contain at least one digit")
-    if bool(settings.AUTH_PASSWORD_REQUIRE_SPECIAL) and not re.search(r"[^A-Za-z0-9]", raw):
+    if bool(settings.AUTH_PASSWORD_REQUIRE_SPECIAL) and not re.search(
+        r"[^A-Za-z0-9]", raw
+    ):
         raise ValueError("password must contain at least one special character")
 
 
@@ -120,7 +122,12 @@ def create_access_token(*, identity: AuthIdentity) -> str:
         "exp": exp,
         "iat": datetime.now(timezone.utc),
     }
-    return jwt.encode(payload, signing_key, algorithm=settings.AUTH_ALGORITHM, headers={"kid": active_kid})
+    return jwt.encode(
+        payload,
+        signing_key,
+        algorithm=settings.AUTH_ALGORITHM,
+        headers={"kid": active_kid},
+    )
 
 
 def decode_access_token(token: str) -> AuthIdentity | None:
@@ -150,7 +157,9 @@ def decode_access_token(token: str) -> AuthIdentity | None:
     amr = str(payload.get("amr") or "pwd").strip().lower() or "pwd"
     if not email or not role or not tenant_slug or uid <= 0:
         return None
-    return AuthIdentity(email=email, role=role, tenant_slug=tenant_slug, user_id=uid, amr=amr)
+    return AuthIdentity(
+        email=email, role=role, tenant_slug=tenant_slug, user_id=uid, amr=amr
+    )
 
 
 def get_user(db: Session, tenant_id: int, email: str) -> AuthUser | None:
@@ -208,7 +217,9 @@ def authenticate_user(
     return row
 
 
-def create_refresh_session(db: Session, tenant_id: int, user_id: int) -> tuple[str, AuthSession]:
+def create_refresh_session(
+    db: Session, tenant_id: int, user_id: int
+) -> tuple[str, AuthSession]:
     max_active = max(1, int(settings.AUTH_MAX_ACTIVE_SESSIONS_PER_USER))
     active_rows = (
         db.query(AuthSession)
@@ -227,7 +238,9 @@ def create_refresh_session(db: Session, tenant_id: int, user_id: int) -> tuple[s
             row.is_revoked = True
 
     raw = secrets.token_urlsafe(48)
-    expires = utc_now_naive() + timedelta(days=max(1, int(settings.AUTH_REFRESH_TOKEN_DAYS)))
+    expires = utc_now_naive() + timedelta(
+        days=max(1, int(settings.AUTH_REFRESH_TOKEN_DAYS))
+    )
     row = AuthSession(
         tenant_id=tenant_id,
         user_id=user_id,
@@ -242,7 +255,9 @@ def create_refresh_session(db: Session, tenant_id: int, user_id: int) -> tuple[s
     return raw, row
 
 
-def use_refresh_session(db: Session, tenant_id: int, refresh_token: str) -> AuthSession | None:
+def use_refresh_session(
+    db: Session, tenant_id: int, refresh_token: str
+) -> AuthSession | None:
     token_hash = hash_token(refresh_token)
     row = db.execute(
         select(AuthSession).where(
@@ -260,14 +275,18 @@ def use_refresh_session(db: Session, tenant_id: int, refresh_token: str) -> Auth
 
 
 def revoke_refresh_session(db: Session, session_id: int) -> None:
-    row = db.execute(select(AuthSession).where(AuthSession.id == session_id)).scalar_one_or_none()
+    row = db.execute(
+        select(AuthSession).where(AuthSession.id == session_id)
+    ).scalar_one_or_none()
     if not row:
         return
     row.is_revoked = True
     db.commit()
 
 
-def revoke_refresh_session_by_token(db: Session, tenant_id: int, refresh_token: str) -> bool:
+def revoke_refresh_session_by_token(
+    db: Session, tenant_id: int, refresh_token: str
+) -> bool:
     token_hash = hash_token(refresh_token)
     row = db.execute(
         select(AuthSession).where(
@@ -296,10 +315,16 @@ def list_refresh_sessions(
         q = q.filter(AuthSession.user_id == user_id)
     if not include_revoked:
         q = q.filter(AuthSession.is_revoked.is_(False))
-    return q.order_by(AuthSession.created_at.desc(), AuthSession.id.desc()).limit(max(1, min(limit, 1000))).all()
+    return (
+        q.order_by(AuthSession.created_at.desc(), AuthSession.id.desc())
+        .limit(max(1, min(limit, 1000)))
+        .all()
+    )
 
 
-def get_refresh_session_by_id(db: Session, *, tenant_id: int, session_id: int) -> AuthSession | None:
+def get_refresh_session_by_id(
+    db: Session, *, tenant_id: int, session_id: int
+) -> AuthSession | None:
     return db.execute(
         select(AuthSession).where(
             AuthSession.tenant_id == tenant_id,
@@ -322,7 +347,9 @@ def cleanup_expired_refresh_sessions(db: Session, *, tenant_id: int) -> int:
     return int(result.rowcount or 0)
 
 
-def revoke_all_refresh_sessions_for_user(db: Session, *, tenant_id: int, user_id: int) -> int:
+def revoke_all_refresh_sessions_for_user(
+    db: Session, *, tenant_id: int, user_id: int
+) -> int:
     result = db.execute(
         update(AuthSession)
         .where(
@@ -373,7 +400,9 @@ def verify_mfa_code(secret: str, code: str) -> bool:
     return bool(pyotp.TOTP(secret).verify(str(code).strip(), valid_window=1))
 
 
-def extract_identity_from_authorization_header(authorization_header: str | None) -> AuthIdentity | None:
+def extract_identity_from_authorization_header(
+    authorization_header: str | None,
+) -> AuthIdentity | None:
     raw = (authorization_header or "").strip()
     if not raw.lower().startswith("bearer "):
         return None

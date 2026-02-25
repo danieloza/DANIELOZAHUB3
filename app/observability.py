@@ -96,7 +96,8 @@ def _load_recent_redis_events(window_minutes: int) -> list[dict]:
                     "status_code": int(fields.get("status_code") or 0),
                     "duration_ms": float(fields.get("duration_ms") or 0.0),
                     "request_id": str(fields.get("request_id") or ""),
-                    "tenant_slug": str(fields.get("tenant_slug") or "").strip().lower() or None,
+                    "tenant_slug": str(fields.get("tenant_slug") or "").strip().lower()
+                    or None,
                     "timeout_like": _to_bool(fields.get("timeout_like")),
                 }
             )

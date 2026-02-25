@@ -1,11 +1,15 @@
-﻿# -*- coding: utf-8 -*-
-
 import calendar
 from datetime import date, datetime
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from bot.config import DEFAULT_DURATION_MIN, EMPLOYEES, PRICE_PRESETS, SERVICE_DURATIONS, SERVICES
+from bot.config import (
+    DEFAULT_DURATION_MIN,
+    EMPLOYEES,
+    PRICE_PRESETS,
+    SERVICE_DURATIONS,
+    SERVICES,
+)
 
 
 def kb_calendar(year: int, month: int) -> InlineKeyboardMarkup:
@@ -13,10 +17,15 @@ def kb_calendar(year: int, month: int) -> InlineKeyboardMarkup:
 
     header = [
         InlineKeyboardButton("◀️", callback_data=f"V:MON_PREV:{year}-{month:02d}"),
-        InlineKeyboardButton(f"{calendar.month_name[month]} {year}", callback_data="V:NOOP"),
+        InlineKeyboardButton(
+            f"{calendar.month_name[month]} {year}", callback_data="V:NOOP"
+        ),
         InlineKeyboardButton("▶️", callback_data=f"V:MON_NEXT:{year}-{month:02d}"),
     ]
-    week_days = [InlineKeyboardButton(d, callback_data="V:NOOP") for d in ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"]]
+    week_days = [
+        InlineKeyboardButton(d, callback_data="V:NOOP")
+        for d in ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"]
+    ]
 
     rows = [header, week_days]
     for week in cal:
@@ -134,7 +143,10 @@ def visit_summary(d: dict) -> str:
 
 # Widok dnia (D:)
 def kb_day_employees(day_iso: str) -> InlineKeyboardMarkup:
-    rows = [[InlineKeyboardButton(f"📅 Dziś → {e}", callback_data=f"D:EMP:{day_iso}:{e}")] for e in EMPLOYEES]
+    rows = [
+        [InlineKeyboardButton(f"📅 Dziś → {e}", callback_data=f"D:EMP:{day_iso}:{e}")]
+        for e in EMPLOYEES
+    ]
     rows.append([InlineKeyboardButton("⬅️ Menu", callback_data="D:BACK_MENU")])
     return InlineKeyboardMarkup(rows)
 
@@ -142,16 +154,36 @@ def kb_day_employees(day_iso: str) -> InlineKeyboardMarkup:
 def kb_day_actions(day_iso: str, employee_name: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("➕ Dodaj", callback_data=f"D:ADD:{day_iso}:{employee_name}")],
-            [InlineKeyboardButton("🗑️ Anuluj wizytę", callback_data=f"D:CANCEL_SELECT:{day_iso}:{employee_name}")],
-            [InlineKeyboardButton("🕒 Przełóż wizytę", callback_data=f"D:MOVE_SELECT:{day_iso}:{employee_name}")],
-            [InlineKeyboardButton("⬅️ Zmień osobę", callback_data=f"D:CHOOSE:{day_iso}")],
+            [
+                InlineKeyboardButton(
+                    "➕ Dodaj", callback_data=f"D:ADD:{day_iso}:{employee_name}"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "🗑️ Anuluj wizytę",
+                    callback_data=f"D:CANCEL_SELECT:{day_iso}:{employee_name}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "🕒 Przełóż wizytę",
+                    callback_data=f"D:MOVE_SELECT:{day_iso}:{employee_name}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "⬅️ Zmień osobę", callback_data=f"D:CHOOSE:{day_iso}"
+                )
+            ],
             [InlineKeyboardButton("⬅️ Menu", callback_data="D:BACK_MENU")],
         ]
     )
 
 
-def kb_day_cancel_list(day_iso: str, employee_name: str, visits: list[dict]) -> InlineKeyboardMarkup:
+def kb_day_cancel_list(
+    day_iso: str, employee_name: str, visits: list[dict]
+) -> InlineKeyboardMarkup:
     rows = []
     for v in visits:
         visit_id = int(v.get("id"))
@@ -169,20 +201,39 @@ def kb_day_cancel_list(day_iso: str, employee_name: str, visits: list[dict]) -> 
             ]
         )
 
-    rows.append([InlineKeyboardButton("⬅️ Powrót", callback_data=f"D:EMP:{day_iso}:{employee_name}")])
+    rows.append(
+        [
+            InlineKeyboardButton(
+                "⬅️ Powrót", callback_data=f"D:EMP:{day_iso}:{employee_name}"
+            )
+        ]
+    )
     return InlineKeyboardMarkup(rows)
 
 
-def kb_day_cancel_confirm(day_iso: str, employee_name: str, visit_id: int) -> InlineKeyboardMarkup:
+def kb_day_cancel_confirm(
+    day_iso: str, employee_name: str, visit_id: int
+) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("✅ Tak, anuluj", callback_data=f"D:CANCEL_DO:{visit_id}:{day_iso}:{employee_name}")],
-            [InlineKeyboardButton("❌ Nie", callback_data=f"D:EMP:{day_iso}:{employee_name}")],
+            [
+                InlineKeyboardButton(
+                    "✅ Tak, anuluj",
+                    callback_data=f"D:CANCEL_DO:{visit_id}:{day_iso}:{employee_name}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "❌ Nie", callback_data=f"D:EMP:{day_iso}:{employee_name}"
+                )
+            ],
         ]
     )
 
 
-def kb_day_move_list(day_iso: str, employee_name: str, visits: list[dict]) -> InlineKeyboardMarkup:
+def kb_day_move_list(
+    day_iso: str, employee_name: str, visits: list[dict]
+) -> InlineKeyboardMarkup:
     rows = []
     for v in visits:
         visit_id = int(v.get("id"))
@@ -200,19 +251,38 @@ def kb_day_move_list(day_iso: str, employee_name: str, visits: list[dict]) -> In
             ]
         )
 
-    rows.append([InlineKeyboardButton("⬅️ Powrót", callback_data=f"D:EMP:{day_iso}:{employee_name}")])
+    rows.append(
+        [
+            InlineKeyboardButton(
+                "⬅️ Powrót", callback_data=f"D:EMP:{day_iso}:{employee_name}"
+            )
+        ]
+    )
     return InlineKeyboardMarkup(rows)
 
 
-def kb_move_calendar(year: int, month: int, source_day: str, employee_name: str) -> InlineKeyboardMarkup:
+def kb_move_calendar(
+    year: int, month: int, source_day: str, employee_name: str
+) -> InlineKeyboardMarkup:
     cal = calendar.monthcalendar(year, month)
 
     header = [
-        InlineKeyboardButton("◀️", callback_data=f"D:MOVE_MON_PREV:{year}-{month:02d}:{source_day}:{employee_name}"),
-        InlineKeyboardButton(f"{calendar.month_name[month]} {year}", callback_data="D:MOVE_NOOP"),
-        InlineKeyboardButton("▶️", callback_data=f"D:MOVE_MON_NEXT:{year}-{month:02d}:{source_day}:{employee_name}"),
+        InlineKeyboardButton(
+            "◀️",
+            callback_data=f"D:MOVE_MON_PREV:{year}-{month:02d}:{source_day}:{employee_name}",
+        ),
+        InlineKeyboardButton(
+            f"{calendar.month_name[month]} {year}", callback_data="D:MOVE_NOOP"
+        ),
+        InlineKeyboardButton(
+            "▶️",
+            callback_data=f"D:MOVE_MON_NEXT:{year}-{month:02d}:{source_day}:{employee_name}",
+        ),
     ]
-    week_days = [InlineKeyboardButton(d, callback_data="D:MOVE_NOOP") for d in ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"]]
+    week_days = [
+        InlineKeyboardButton(d, callback_data="D:MOVE_NOOP")
+        for d in ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"]
+    ]
 
     rows = [header, week_days]
     for week in cal:
@@ -222,14 +292,27 @@ def kb_move_calendar(year: int, month: int, source_day: str, employee_name: str)
                 row.append(InlineKeyboardButton(" ", callback_data="D:MOVE_NOOP"))
             else:
                 d = date(year, month, day).isoformat()
-                row.append(InlineKeyboardButton(str(day), callback_data=f"D:MOVE_DATE:{d}:{source_day}:{employee_name}"))
+                row.append(
+                    InlineKeyboardButton(
+                        str(day),
+                        callback_data=f"D:MOVE_DATE:{d}:{source_day}:{employee_name}",
+                    )
+                )
         rows.append(row)
 
-    rows.append([InlineKeyboardButton("⬅️ Powrót", callback_data=f"D:EMP:{source_day}:{employee_name}")])
+    rows.append(
+        [
+            InlineKeyboardButton(
+                "⬅️ Powrót", callback_data=f"D:EMP:{source_day}:{employee_name}"
+            )
+        ]
+    )
     return InlineKeyboardMarkup(rows)
 
 
-def kb_move_hours(day_iso: str, source_day: str, employee_name: str, start_h: int, end_h: int) -> InlineKeyboardMarkup:
+def kb_move_hours(
+    day_iso: str, source_day: str, employee_name: str, start_h: int, end_h: int
+) -> InlineKeyboardMarkup:
     rows, row = [], []
     for h in range(start_h, end_h):
         row.append(
@@ -246,14 +329,21 @@ def kb_move_hours(day_iso: str, source_day: str, employee_name: str, start_h: in
 
     rows.append(
         [
-            InlineKeyboardButton("⬅️ Data", callback_data=f"D:MOVE_BACK_DATE:{day_iso}:{source_day}:{employee_name}"),
-            InlineKeyboardButton("⬅️ Powrót", callback_data=f"D:EMP:{source_day}:{employee_name}"),
+            InlineKeyboardButton(
+                "⬅️ Data",
+                callback_data=f"D:MOVE_BACK_DATE:{day_iso}:{source_day}:{employee_name}",
+            ),
+            InlineKeyboardButton(
+                "⬅️ Powrót", callback_data=f"D:EMP:{source_day}:{employee_name}"
+            ),
         ]
     )
     return InlineKeyboardMarkup(rows)
 
 
-def kb_move_minutes(hour: int, day_iso: str, source_day: str, employee_name: str, end_h: int) -> InlineKeyboardMarkup:
+def kb_move_minutes(
+    hour: int, day_iso: str, source_day: str, employee_name: str, end_h: int
+) -> InlineKeyboardMarkup:
     minutes = list(range(0, 60, 5))
     if hour == (end_h - 1):
         minutes = [m for m in minutes if m <= 45]
@@ -274,10 +364,45 @@ def kb_move_minutes(hour: int, day_iso: str, source_day: str, employee_name: str
 
     rows.append(
         [
-            InlineKeyboardButton("⬅️ Godzina", callback_data=f"D:MOVE_BACK_HOUR:{day_iso}:{source_day}:{employee_name}"),
-            InlineKeyboardButton("⬅️ Powrót", callback_data=f"D:EMP:{source_day}:{employee_name}"),
+            InlineKeyboardButton(
+                "⬅️ Godzina",
+                callback_data=f"D:MOVE_BACK_HOUR:{day_iso}:{source_day}:{employee_name}",
+            ),
+            InlineKeyboardButton(
+                "⬅️ Powrót", callback_data=f"D:EMP:{source_day}:{employee_name}"
+            ),
         ]
     )
     return InlineKeyboardMarkup(rows)
 
+
+# Senior IT: Team & Portfolio Management
+def kb_team_management(employees: list[dict]) -> InlineKeyboardMarkup:
+    rows = []
+    for e in employees:
+        status = "✅" if e.get("is_active") else "❌"
+        rows.append([
+            InlineKeyboardButton(f"{status} {e.get('name')}", callback_data=f"TEAM:VIEW:{e.get('id')}")
+        ])
+    
+    rows.append([InlineKeyboardButton("➕ Dodaj pracownika", callback_data="TEAM:ADD")])
+    rows.append([InlineKeyboardButton("🏠 Menu Główne", callback_data="D:BACK_MENU")])
+    return InlineKeyboardMarkup(rows)
+
+
+def kb_employee_portfolio_manage(employee_id: int, portfolio: list[dict], is_public: bool) -> InlineKeyboardMarkup:
+    rows = []
+    
+    pub_label = "🌐 Publiczne: TAK" if is_public else "🔒 Publiczne: NIE"
+    rows.append([InlineKeyboardButton(pub_label, callback_data=f"TEAM:TOGGLE_PUB:{employee_id}")])
+    
+    for img in portfolio:
+        rows.append([
+            InlineKeyboardButton(f"🖼️ Usuń: {img.get('description') or 'zdjęcie'}", 
+                                 callback_data=f"TEAM:DEL_IMG:{employee_id}:{img.get('id')}")
+        ])
+    
+    rows.append([InlineKeyboardButton("📸 Dodaj zdjęcie (URL)", callback_data=f"TEAM:ADD_IMG:{employee_id}")])
+    rows.append([InlineKeyboardButton("⬅️ Zespół", callback_data="TEAM:MENU")])
+    return InlineKeyboardMarkup(rows)
 
