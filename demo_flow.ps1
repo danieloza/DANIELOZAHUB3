@@ -167,7 +167,11 @@ try {
   Wait-Endpoint "$baseUrlNormalized/ping"
   Write-Host "[1/10] API ready"
 
-  $h = @{ "X-Tenant-Slug" = $Tenant }
+  $h = @{
+    "X-Tenant-Slug" = $Tenant
+    "X-Actor-Email" = $ActorEmail
+    "X-Actor-Role" = "owner"
+  }
   $ha = @{ "X-Tenant-Slug" = $Tenant; "X-Actor-Email" = $ActorEmail }
   $hOps = @{ "X-Tenant-Slug" = $Tenant }
   if (-not [string]::IsNullOrWhiteSpace($AdminApiKey)) {
