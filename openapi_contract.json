@@ -1277,29 +1277,6 @@
         "title": "DayPulseOut",
         "type": "object"
       },
-      "DaySummary": {
-        "properties": {
-          "date": {
-            "title": "Date",
-            "type": "string"
-          },
-          "total_revenue": {
-            "title": "Total Revenue",
-            "type": "number"
-          },
-          "visits_count": {
-            "title": "Visits Count",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "date",
-          "total_revenue",
-          "visits_count"
-        ],
-        "title": "DaySummary",
-        "type": "object"
-      },
       "EmployeeAvailabilityOut": {
         "properties": {
           "day": {
@@ -1922,6 +1899,64 @@
           "amount"
         ],
         "title": "PaymentIntentIn",
+        "type": "object"
+      },
+      "PortfolioImageCreate": {
+        "properties": {
+          "description": {
+            "maxLength": 200,
+            "title": "Description",
+            "type": "string"
+          },
+          "image_url": {
+            "maxLength": 500,
+            "minLength": 10,
+            "title": "Image Url",
+            "type": "string"
+          },
+          "order_weight": {
+            "default": 0,
+            "title": "Order Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image_url"
+        ],
+        "title": "PortfolioImageCreate",
+        "type": "object"
+      },
+      "PortfolioImageOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "order_weight": {
+            "default": 0,
+            "title": "Order Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "image_url",
+          "created_at"
+        ],
+        "title": "PortfolioImageOut",
         "type": "object"
       },
       "PublicReservationCreate": {
@@ -2606,16 +2641,29 @@
             "title": "Is Active",
             "type": "boolean"
           },
+          "is_portfolio_public": {
+            "title": "Is Portfolio Public",
+            "type": "boolean"
+          },
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "portfolio": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PortfolioImageOut"
+            },
+            "title": "Portfolio",
+            "type": "array"
           }
         },
         "required": [
           "id",
           "name",
           "commission_pct",
-          "is_active"
+          "is_active",
+          "is_portfolio_public"
         ],
         "title": "TeamEmployeeOut",
         "type": "object"
@@ -2630,6 +2678,10 @@
           },
           "is_active": {
             "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_portfolio_public": {
+            "title": "Is Portfolio Public",
             "type": "boolean"
           },
           "name": {
@@ -3204,6 +3256,57 @@
           "role"
         ],
         "title": "TenantUserRoleSet",
+        "type": "object"
+      },
+      "UserLogin": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "UserLogin",
+        "type": "object"
+      },
+      "UserRegister": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          },
+          "rodo_accepted": {
+            "title": "Rodo Accepted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "name",
+          "phone",
+          "rodo_accepted"
+        ],
+        "title": "UserRegister",
         "type": "object"
       },
       "ValidationError": {
@@ -7908,17 +8011,26 @@
         "summary": "Get Slot Recommendations"
       }
     },
-    "/api/summary/day": {
+    "/api/summary/smart": {
       "get": {
-        "operationId": "get_day_summary_api_summary_day_get",
+        "description": "Senior IT: Returns personalized financial stats based on user role.",
+        "operationId": "get_smart_summary_api_summary_smart_get",
         "parameters": [
           {
-            "in": "query",
-            "name": "day",
-            "required": true,
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
             "schema": {
-              "format": "date",
-              "title": "Day",
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
               "type": "string"
             }
           },
@@ -7936,9 +8048,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DaySummary"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -7954,13 +8064,24 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Get Day Summary"
+        "summary": "Get Smart Summary"
       }
     },
     "/api/team/employees": {
       "get": {
         "operationId": "list_team_employees_endpoint_api_team_employees_get",
         "parameters": [
+          {
+            "description": "Search by name",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "description": "Search by name",
+              "title": "Q",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "include_inactive",
@@ -8385,6 +8506,200 @@
           }
         },
         "summary": "Upsert Employee Capability Endpoint"
+      }
+    },
+    "/api/team/employees/{employee_id}/portfolio": {
+      "get": {
+        "operationId": "list_team_employee_portfolio_endpoint_api_team_employees__employee_id__portfolio_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PortfolioImageOut"
+                  },
+                  "title": "Response List Team Employee Portfolio Endpoint Api Team Employees  Employee Id  Portfolio Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Team Employee Portfolio Endpoint"
+      },
+      "post": {
+        "operationId": "add_team_employee_portfolio_image_endpoint_api_team_employees__employee_id__portfolio_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortfolioImageCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioImageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Team Employee Portfolio Image Endpoint"
+      }
+    },
+    "/api/team/employees/{employee_id}/portfolio/{image_id}": {
+      "delete": {
+        "operationId": "delete_team_employee_portfolio_image_endpoint_api_team_employees__employee_id__portfolio__image_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "image_id",
+            "required": true,
+            "schema": {
+              "title": "Image Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-email",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Email",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-actor-role",
+            "required": false,
+            "schema": {
+              "title": "X-Actor-Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Team Employee Portfolio Image Endpoint"
       }
     },
     "/api/team/employees/{employee_id}/weekly-schedule": {
@@ -9543,6 +9858,161 @@
         "summary": "Reassign Visit Endpoint"
       }
     },
+    "/api/team/workstations": {
+      "get": {
+        "operationId": "list_workstations_endpoint_api_team_workstations_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Workstations Endpoint"
+      },
+      "post": {
+        "operationId": "create_workstation_api_team_workstations_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "default": "chair",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Workstation"
+      }
+    },
+    "/api/team/workstations/{ws_id}": {
+      "patch": {
+        "operationId": "update_workstation_pos_api_team_workstations__ws_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ws_id",
+            "required": true,
+            "schema": {
+              "title": "Ws Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pos_x",
+            "required": true,
+            "schema": {
+              "title": "Pos X",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pos_y",
+            "required": true,
+            "schema": {
+              "title": "Pos Y",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-tenant-slug",
+            "required": false,
+            "schema": {
+              "title": "X-Tenant-Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Workstation Pos"
+      }
+    },
     "/api/visits": {
       "get": {
         "operationId": "list_visits_api_visits_get",
@@ -9938,7 +10408,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AuthLoginIn"
+                "$ref": "#/components/schemas/UserLogin"
               }
             }
           },
@@ -9948,9 +10418,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthTokenOut"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -9968,7 +10436,7 @@
         },
         "summary": "Login",
         "tags": [
-          "auth"
+          "authentication"
         ]
       }
     },
@@ -10245,22 +10713,11 @@
     "/auth/register": {
       "post": {
         "operationId": "register_auth_register_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "x-admin-api-key",
-            "required": false,
-            "schema": {
-              "title": "X-Admin-Api-Key",
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AuthRegisterIn"
+                "$ref": "#/components/schemas/UserRegister"
               }
             }
           },
@@ -10270,9 +10727,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthMeOut"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -10290,7 +10745,47 @@
         },
         "summary": "Register",
         "tags": [
-          "auth"
+          "authentication"
+        ]
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "operationId": "request_password_reset_auth_reset_password_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "email",
+            "required": true,
+            "schema": {
+              "title": "Email",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Password Reset",
+        "tags": [
+          "authentication"
         ]
       }
     },
@@ -10476,6 +10971,141 @@
         "summary": "Ready"
       }
     },
+    "/messenger/webhook": {
+      "get": {
+        "description": "Standard Meta Webhook verification.",
+        "operationId": "verify_messenger_messenger_webhook_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Verify Messenger",
+        "tags": [
+          "messenger"
+        ]
+      },
+      "post": {
+        "description": "Receives messages from Messenger, asks AI for answer, and alerts owner.",
+        "operationId": "handle_messenger_message_messenger_webhook_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Handle Messenger Message",
+        "tags": [
+          "messenger"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Metrics"
+      }
+    },
+    "/payments/create-intent": {
+      "post": {
+        "description": "Senior IT: Creates a Stripe PaymentIntent for the web-based elements.",
+        "operationId": "create_payment_intent_payments_create_intent_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "visit_id",
+            "required": true,
+            "schema": {
+              "title": "Visit Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Payment Intent",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/payments/webhook": {
+      "post": {
+        "operationId": "stripe_webhook_payments_webhook_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-stripe-signature",
+            "required": false,
+            "schema": {
+              "title": "X-Stripe-Signature",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stripe Webhook",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
     "/ping": {
       "get": {
         "operationId": "ping_ping_get",
@@ -10490,6 +11120,116 @@
           }
         },
         "summary": "Ping"
+      }
+    },
+    "/public/reservations": {
+      "post": {
+        "operationId": "create_public_reservation_endpoint_public_reservations_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenant_slug",
+            "required": true,
+            "schema": {
+              "title": "Tenant Slug",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicReservationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicReservationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Public Reservation Endpoint"
+      }
+    },
+    "/public/{tenant_slug}/employees/{employee_id}/portfolio": {
+      "get": {
+        "operationId": "get_public_employee_portfolio_endpoint_public__tenant_slug__employees__employee_id__portfolio_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenant_slug",
+            "required": true,
+            "schema": {
+              "title": "Tenant Slug",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "employee_id",
+            "required": true,
+            "schema": {
+              "title": "Employee Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PortfolioImageOut"
+                  },
+                  "title": "Response Get Public Employee Portfolio Endpoint Public  Tenant Slug  Employees  Employee Id  Portfolio Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Public Employee Portfolio Endpoint"
       }
     },
     "/public/{tenant_slug}/reservations": {

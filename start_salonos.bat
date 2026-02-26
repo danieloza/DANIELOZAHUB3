@@ -1,3 +1,3 @@
 @echo off
-cd /d C:\Users\syfsy\projekty\salonos
+cd /d "%~dp0"
 powershell -NoProfile -ExecutionPolicy Bypass -File ".\start_all.ps1"

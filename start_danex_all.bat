@@ -1,23 +1,23 @@
 @echo off
+setlocal
+
 echo ===============================
-echo     DANEX ??? START SYSTEMU
+echo      DANEX START SYSTEMU
 echo ===============================
+
+set "SALONOS_DIR=%~dp0"
+for %%I in ("%SALONOS_DIR%..") do set "WORKSPACE_DIR=%%~fI"
+set "DANEX_BOT_DIR=%WORKSPACE_DIR%\danex-faktury-bot"
 
 REM === SALONOS API ===
 echo [1/3] Uruchamiam SalonOS API...
-start "SalonOS API" cmd /k ^
-cd /d C:\Users\syfsy\projekty\salonos ^& ^
-.venv\Scripts\activate ^& ^
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+start "SalonOS API" cmd /k "cd /d ""%SALONOS_DIR%"" && call .venv\Scripts\activate.bat && python -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
 
 timeout /t 3 >nul
 
 REM === SALONOS BOT ===
 echo [2/3] Uruchamiam SalonOS BOT...
-start "SalonOS BOT" cmd /k ^
-cd /d C:\Users\syfsy\projekty\salonos ^& ^
-.venv\Scripts\activate ^& ^
-python -m bot.telegram_bot
+start "SalonOS BOT" cmd /k "cd /d ""%SALONOS_DIR%"" && call .venv\Scripts\activate.bat && python -m bot.telegram_bot"
 
 timeout /t 2 >nul
 
@@ -28,15 +28,9 @@ timeout /t 1 >nul
 
 REM === DANEX FAKTURY BOT ===
 echo [3/3] Uruchamiam Danex Faktury BOT...
-start "Danex Faktury BOT" cmd /k ^
-cd /d C:\Users\syfsy\projekty\danex-faktury-bot ^& ^
-call .venv\Scripts\activate.bat ^& ^
-python --version ^& ^
-python bot.py
-
+start "Danex Faktury BOT" cmd /k "cd /d ""%DANEX_BOT_DIR%"" && call .venv\Scripts\activate.bat && python --version && python bot.py"
 
 echo ===============================
 echo   WSZYSTKO URUCHOMIONE
 echo ===============================
 pause
-

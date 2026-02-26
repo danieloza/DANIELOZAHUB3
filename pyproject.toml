@@ -1,6 +1,11 @@
+[project]
+name = "salonos"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP", "S"]
@@ -13,7 +18,7 @@ ignore = [
 "tests/*" = ["S101"] # Asserts are standard in tests
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 ignore_missing_imports = true
 exclude = ["venv", ".venv", "alembic"]

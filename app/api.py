@@ -3605,15 +3605,13 @@ def create_public_reservation_endpoint(
     request: Request = None,
     db: Session = Depends(get_db),
 ):
-    from .main import limiter
-    with limiter.limit("5/hour", request=request):
-        tenant = db.execute(
-            select(Tenant).where(Tenant.slug == tenant_slug.strip().lower())
-        ).scalar_one_or_none()
-        if not tenant:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found"
-            )
+    tenant = db.execute(
+        select(Tenant).where(Tenant.slug == tenant_slug.strip().lower())
+    ).scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found"
+        )
 
     try:
         enforce_public_reservation_rate_limit(
