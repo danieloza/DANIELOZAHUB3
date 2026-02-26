@@ -24,12 +24,13 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run synthetic flow
+        if: ${{ secrets.SALONOS_BASE_URL != '' }}
         env:
           BASE_URL: ${{ secrets.SALONOS_BASE_URL }}
           TENANT: synthetic-monitor
         run: |
-          if [ -z "$BASE_URL" ]; then
-            echo "SALONOS_BASE_URL secret is missing" >&2
-            exit 1
-          fi
           python scripts/synthetic_monitor.py --base-url "$BASE_URL" --tenant "$TENANT"
+
+      - name: Skip synthetic flow (missing secret)
+        if: ${{ secrets.SALONOS_BASE_URL == '' }}
+        run: echo "SALONOS_BASE_URL secret is missing; skipping synthetic monitor run."
