@@ -5,7 +5,7 @@ param(
   [ValidateRange(1, 365)][int]$ReservationDayOffset = 3,
   [string]$EmployeeName = "Magda",
   [string]$ServiceName = "Strzyzenie",
-  [string]$ReservationServiceName = "Koloryzacja",
+  [string]$ReservationServiceName = "Strzyzenie",
   [string]$ActorEmail = "owner@salon.pl",
   [string]$AdminApiKey = $env:ADMIN_API_KEY,
   [ValidateRange(5, 480)][int]$VisitDurationMin = 60,
@@ -266,6 +266,7 @@ try {
     }
   $convertedVisit = Invoke-JsonApi -Method "Post" -Uri "$baseUrlNormalized/api/reservations/$($reservation.id)/convert" -Headers $ha -BodyObject @{
       employee_name = $EmployeeName
+      service_name = $ServiceName
       price = 260
     }
   $reservationHistory = Invoke-JsonApi -Method "Get" -Uri "$baseUrlNormalized/api/reservations/$($reservation.id)/history" -Headers $h
