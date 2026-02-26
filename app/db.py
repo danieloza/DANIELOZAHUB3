@@ -241,6 +241,59 @@ def run_schema_migrations():
             text("CREATE INDEX IF NOT EXISTS ix_tenants_name ON tenants (name)")
         )
 
+        if _sqlite_table_exists(conn, "tenants"):
+            if not _sqlite_table_has_column(conn, "tenants", "logo_url"):
+                conn.execute(text("ALTER TABLE tenants ADD COLUMN logo_url VARCHAR(500)"))
+            if not _sqlite_table_has_column(conn, "tenants", "headline"):
+                conn.execute(text("ALTER TABLE tenants ADD COLUMN headline VARCHAR(200)"))
+            if not _sqlite_table_has_column(conn, "tenants", "about_us"):
+                conn.execute(text("ALTER TABLE tenants ADD COLUMN about_us TEXT"))
+            if not _sqlite_table_has_column(conn, "tenants", "address"):
+                conn.execute(text("ALTER TABLE tenants ADD COLUMN address VARCHAR(255)"))
+            if not _sqlite_table_has_column(conn, "tenants", "city"):
+                conn.execute(text("ALTER TABLE tenants ADD COLUMN city VARCHAR(100)"))
+            if not _sqlite_table_has_column(conn, "tenants", "google_maps_url"):
+                conn.execute(
+                    text("ALTER TABLE tenants ADD COLUMN google_maps_url VARCHAR(500)")
+                )
+            if not _sqlite_table_has_column(conn, "tenants", "instagram_url"):
+                conn.execute(
+                    text("ALTER TABLE tenants ADD COLUMN instagram_url VARCHAR(255)")
+                )
+            if not _sqlite_table_has_column(conn, "tenants", "facebook_url"):
+                conn.execute(
+                    text("ALTER TABLE tenants ADD COLUMN facebook_url VARCHAR(255)")
+                )
+            if not _sqlite_table_has_column(conn, "tenants", "website_url"):
+                conn.execute(text("ALTER TABLE tenants ADD COLUMN website_url VARCHAR(255)"))
+            if not _sqlite_table_has_column(conn, "tenants", "contact_email"):
+                conn.execute(
+                    text("ALTER TABLE tenants ADD COLUMN contact_email VARCHAR(160)")
+                )
+            if not _sqlite_table_has_column(conn, "tenants", "contact_phone"):
+                conn.execute(
+                    text("ALTER TABLE tenants ADD COLUMN contact_phone VARCHAR(40)")
+                )
+            if not _sqlite_table_has_column(conn, "tenants", "industry_type"):
+                conn.execute(
+                    text(
+                        "ALTER TABLE tenants ADD COLUMN industry_type VARCHAR(50) NOT NULL DEFAULT 'general_beauty'"
+                    )
+                )
+            if not _sqlite_table_has_column(conn, "tenants", "rating_avg"):
+                conn.execute(
+                    text(
+                        "ALTER TABLE tenants ADD COLUMN rating_avg NUMERIC(3,2) NOT NULL DEFAULT 5.0"
+                    )
+                )
+            if not _sqlite_table_has_column(conn, "tenants", "created_at"):
+                conn.execute(text("ALTER TABLE tenants ADD COLUMN created_at DATETIME"))
+                conn.execute(
+                    text(
+                        "UPDATE tenants SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
+                    )
+                )
+
         _ensure_default_tenant(conn)
 
         if _sqlite_table_exists(conn, "visits") and not _sqlite_table_has_column(
