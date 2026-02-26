@@ -108,9 +108,15 @@ function Invoke-JsonApi {
   try {
     return Invoke-RestMethod @args
   } catch {
-    $body = Get-ErrorBody $_
-    if ($body) {
-      throw "HTTP $Method $Uri failed: $body"
+    $detail = $null
+    if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+      $detail = "$($_.ErrorDetails.Message)".Trim()
+    }
+    if (-not $detail) {
+      $detail = Get-ErrorBody $_
+    }
+    if ($detail) {
+      throw "HTTP $Method $Uri failed: $detail"
     }
     throw "HTTP $Method $Uri failed: $($_.Exception.Message)"
   }
@@ -191,6 +197,16 @@ try {
       end_hour = 18
       note = "demo-flow"
     }
+  if ($reservationDay -ne $day) {
+    Invoke-JsonApi -Method "Post" -Uri "$baseUrlNormalized/api/availability/day" -Headers $h -BodyObject @{
+        employee_name = $EmployeeName
+        day = $reservationDay
+        is_day_off = $false
+        start_hour = 8
+        end_hour = 18
+        note = "demo-flow-reservation-day"
+      } | Out-Null
+  }
   $block = Invoke-JsonApi -Method "Post" -Uri "$baseUrlNormalized/api/availability/blocks" -Headers $h -BodyObject @{
       employee_name = $EmployeeName
       start_dt = "$day`T12:00:00"
